@@ -24,7 +24,7 @@ from .train import load_model
 PALETTE = {
     "sidewalk": (60, 180, 75), "braille_guide_blocks": (255, 225, 25), "roadway": (128, 128, 128),
     "alley": (170, 110, 40), "bike_lane": (0, 130, 200), "stairs": (145, 30, 180),
-    "repair_zone": (245, 130, 48), "caution_other": (240, 50, 230),
+    "repair_zone": (245, 130, 48), "manhole_grating": (70, 240, 240), "tree_zone": (128, 0, 0),
 }
 OBSTACLE_RGB = (230, 25, 75)
 

@@ -14,7 +14,8 @@ SURFACE_CLASSES: list[str] = [
     "bike_lane",            # 자전거도로
     "stairs",               # caution_zone/stairs → 단차 유형
     "repair_zone",          # caution_zone/repair_zone → 공사 유형
-    "caution_other",        # caution_zone/manhole,grating,tree_zone
+    "manhole_grating",      # caution_zone/manhole,grating → 밟고 지나갈 수 있는 면
+    "tree_zone",            # caution_zone/tree_zone → 가로수 보호틀, 통행 불가
 ]
 
 # ---- 장애물(obstacle) : 유효폭을 깎는 요소
@@ -36,7 +37,10 @@ CLASSES: list[str] = SURFACE_CLASSES + OBSTACLE_CLASSES
 CLASS_TO_ID: dict[str, int] = {c: i + 1 for i, c in enumerate(CLASSES)}  # COCO id는 1부터
 
 # 보도 폭 계산 시 "걸을 수 있는 면"으로 합칠 클래스
-WALKABLE_SURFACES: frozenset[str] = frozenset({"sidewalk", "braille_guide_blocks"})
+WALKABLE_SURFACES: frozenset[str] = frozenset({"sidewalk", "braille_guide_blocks", "manhole_grating"})
+
+# 면(surface) 라벨이지만 보도 위에서 통행을 막는 것 → 장애물처럼 유효폭에서 뺀다
+BLOCKING_SURFACES: frozenset[str] = frozenset({"tree_zone"})
 
 # AI Hub 라벨 → 클래스 (속성 무관)
 _DIRECT: dict[str, str] = {
@@ -82,6 +86,9 @@ _DIRECT: dict[str, str] = {
 _CAUTION_BY_ATTR: dict[str, str] = {
     "stairs": "stairs",
     "repair_zone": "repair_zone",
+    "manhole": "manhole_grating",
+    "grating": "manhole_grating",
+    "tree_zone": "tree_zone",
 }
 
 
@@ -90,5 +97,5 @@ def map_aihub(label: str, attribute: str | None = None) -> str | None:
     label = label.strip().lower()
     attr = (attribute or "").strip().lower()
     if label == "caution_zone":
-        return _CAUTION_BY_ATTR.get(attr, "caution_other")
+        return _CAUTION_BY_ATTR.get(attr, "manhole_grating")
     return _DIRECT.get(label)

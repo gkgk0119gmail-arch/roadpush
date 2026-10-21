@@ -70,3 +70,15 @@ def test_snapper_offline():
     s = sn.snap(126.937, 37.55805)          # a에서 약 5.5m
     assert s.link_id == "a" and 4 < s.dist_m < 7 and 80 < s.offset_m < 95
     assert sn.snap(126.937, 37.5585).link_id is None     # 둘 다 50m 이상
+
+
+def test_grating_walkable_tree_zone_blocks():
+    sw = _sidewalk()
+    gr = np.zeros((H, W), dtype=bool); gr[150:170, 150:250] = True    # 배수구 덮개: 보도 가운데
+    sw[150:170, 150:250] = False
+    fa = analyze_frame({"sidewalk": [sw], "manhole_grating": [gr]}, (H, W))
+    assert fa.ratio == pytest.approx(1.0)
+    tz = np.zeros((H, W), dtype=bool); tz[110:199, 100:180] = True    # 가로수 보호틀: 보도 왼쪽 40%
+    sw2 = _sidewalk(); sw2[110:199, 100:180] = False
+    fa = analyze_frame({"sidewalk": [sw2], "tree_zone": [tz]}, (H, W))
+    assert fa.ratio == pytest.approx(0.6, abs=0.02)

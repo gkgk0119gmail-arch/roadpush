@@ -113,7 +113,7 @@ SAM 2보다 SAM 3가 이 용도엔 명백히 낫다(텍스트 프롬프트, 전 
 | **자가 촬영 영상** | 실제 분석 대상·데모 | 폰 가슴/손 높이 고정, 1080p 30fps, 걷기 속도. 동시에 GPX 로거 앱 기록. 같은 구간 **2회(다른 시간대/날짜)** 촬영 → 전·후 비교 |
 | 국토부 보도 유효폭 1.2m (장애인등편의법 시행규칙) | 보조 임계 기준 | 보고서 근거 인용 |
 
-클래스 통합안(15종 내외): sidewalk, braille_guide_blocks, roadway, alley, bike_lane, caution_zone(stairs/repair/manhole/grating 속성 유지), car, truck_bus, motorcycle_bicycle_scooter, bollard, pole, barricade, movable_signage, potted_plant, person_etc.
+클래스 체계(20종, `classes.py` 기준): 면 9종 sidewalk, braille_guide_blocks, roadway, alley, bike_lane, stairs, repair_zone, manhole_grating(통행 가능면), tree_zone(통행 불가 → 장애물 취급) + 장애물 11종 car, truck_bus, two_wheeler, bollard, pole, barricade, movable_signage, potted_plant, person, other_fixed, other_moving.
 
 ---
 

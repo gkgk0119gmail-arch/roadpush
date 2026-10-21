@@ -31,7 +31,8 @@ XML = """<?xml version="1.0" encoding="utf-8"?>
 def test_map_aihub():
     assert map_aihub("sidewalk", "blocks") == "sidewalk"
     assert map_aihub("caution_zone", "stairs") == "stairs"
-    assert map_aihub("caution_zone", "manhole") == "caution_other"
+    assert map_aihub("caution_zone", "manhole") == "manhole_grating"
+    assert map_aihub("caution_zone", "tree_zone") == "tree_zone"
     assert map_aihub("bus") == "truck_bus"
     assert map_aihub("unicorn") is None
 
