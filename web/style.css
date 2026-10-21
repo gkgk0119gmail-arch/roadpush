@@ -44,3 +44,5 @@ tbody tr { cursor: pointer; } tbody tr:hover { background: color-mix(in srgb, va
 footer { padding: 14px 16px 24px; }
 .warn { background: color-mix(in srgb, var(--warn) 18%, transparent); padding: 8px 12px; border-radius: 8px; }
 svg text { fill: var(--ink2); font-size: 11px; }
+.maplegend { background: rgba(252,252,251,.92); color: #0b0b0b; padding: 6px 10px; border-radius: 8px; font-size: 12px; line-height: 1.7; }
+.maplegend i { display: inline-block; width: 18px; height: 5px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }

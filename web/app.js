@@ -24,6 +24,14 @@ document.querySelectorAll("#profile button").forEach((b) => b.onclick = () => {
 // ---------------- 데이터
 const map = L.map("map", { zoomControl: true }).setView([37.564, 126.988], 16);
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap contributors" }).addTo(map);
+const legend = L.control({ position: "bottomleft" });
+legend.onAdd = () => {
+  const d = L.DomUtil.create("div", "maplegend");
+  d.innerHTML = Object.entries(GRADE_COLOR).map(([g, c]) => `<div><i style="background:${c}"></i>${g}</div>`).join("") +
+    '<div><i style="background:#9c9a92;height:3px"></i>촬영 안 됨(측정 불가)</div>';
+  return d;
+};
+legend.addTo(map);
 
 async function init() {
   const meta = await (await fetch(BASE + "data/sessions.json")).json();
