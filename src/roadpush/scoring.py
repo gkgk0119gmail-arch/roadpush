@@ -22,13 +22,16 @@ from typing import Iterable, Mapping, Sequence
 
 import numpy as np
 
-from .classes import BLOCKING_SURFACES, OBSTACLE_CLASSES, TRANSIENT_CLASSES, WALKABLE_SURFACES
+from .classes import BLOCKING_SURFACES, OBSTACLE_CLASSES, TRANSIENT_CLASSES, VEHICLE_CLASSES, WALKABLE_SURFACES
 from .width_ratio import FrameResult, Mask, frame_ratio, obstacles_on_sidewalk
 
-TYPE_WEIGHTS = {"vanish": 1.0, "repair": 0.8, "stairs": 0.6}
-TYPE_WEIGHTS_WHEELCHAIR = {"vanish": 1.0, "repair": 0.8, "stairs": 1.0}
+TYPE_WEIGHTS = {"vanish": 1.0, "repair": 0.8, "shared": 0.7, "stairs": 0.6}
+TYPE_WEIGHTS_WHEELCHAIR = {"vanish": 1.0, "repair": 0.8, "shared": 0.7, "stairs": 1.0}
 TYPE_LABEL_KO = {"vanish": "보도 소멸", "narrow": "폭 협소", "repair": "공사·파손",
-                 "stairs": "단차·계단", "none": "이상 없음"}
+                 "stairs": "단차·계단", "shared": "보차 혼용", "none": "이상 없음"}
+SPACE_LABEL_KO = {"sidewalk": "분리 보도", "shared": "보차 혼용", "none": "보도 없음"}
+# OSM 에서 보도가 분리되지 않았을 가능성이 큰 도로 유형 (명동 보행자 우선도로 등)
+SHARED_HIGHWAYS = frozenset({"pedestrian", "living_street", "residential", "service", "unclassified"})
 GRADES = ((60.0, "위험"), (30.0, "주의"), (0.0, "안전"))
 LEGAL_MIN_WIDTH_M = 1.2   # 장애인등편의법 시행규칙 보도 유효폭
 
@@ -56,6 +59,7 @@ class FrameAnalysis:
     n_obstacles_on_sidewalk: int = 0
     width_m: float | None = None          # 보조: 보도 폭(m)
     free_width_m: float | None = None     # 보조: 가장 좁은 통과 가능 폭(m)
+    vehicles_on_walk: int = 0             # 보행 공간 안 차량·이륜차 수 (보차 혼용 신호)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -89,6 +93,7 @@ def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, i
     instances = [m for c in blockers for m in class_masks.get(c, ())]
     obstacle = obstacles_on_sidewalk(walk, instances)
     n_on = sum(1 for m in instances if (m & obstacle).any())
+    n_veh = sum(1 for c in VEHICLE_CLASSES for m in class_masks.get(c, ()) if (m & obstacle).any())
     fr: FrameResult = frame_ratio(walk, obstacle, cam_h=cam_h)
 
     tags: list[str] = []
@@ -101,8 +106,10 @@ def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, i
         if area and area / max(1, walk_band + area) >= tag_min_frac:
             tags.append(tag)
     mw = fr.metric
+    if n_veh and fr.sidewalk_present:
+        tags.append("shared")
     return FrameAnalysis(fr.ratio, fr.min_ratio, fr.sidewalk_present, tags, n_on,
-                         mw.width_m if mw else None, mw.min_free_m if mw else None)
+                         mw.width_m if mw else None, mw.min_free_m if mw else None, n_veh)
 
 
 # ---------------------------------------------------------------- 링크
@@ -121,10 +128,12 @@ class LinkScore:
     type_fracs: dict[str, float]
     median_free_width_m: float | None = None
     frac_below_legal: float | None = None   # 절대폭 추정된 프레임 중 1.2 m 미만 비중
+    space_type: str = "sidewalk"            # sidewalk | shared | none
 
     def to_dict(self) -> dict:
         d = asdict(self)
         d["primary_type_ko"] = TYPE_LABEL_KO[self.primary_type]
+        d["space_type_ko"] = SPACE_LABEL_KO[self.space_type]
         return d
 
 
@@ -150,8 +159,21 @@ def drop_short_gaps(frames: Sequence[FrameAnalysis], min_run: int) -> list[Frame
     return keep
 
 
+def space_type_of(frames: Sequence[FrameAnalysis], highway: str | None = None, vanish_frac: float = 0.5,
+                  shared_frac: float = 0.3, shared_frac_osm: float = 0.15) -> str:
+    """링크 공간 유형. 보도 미검출이 과반 → none, 보행 공간 안 차량 프레임이 많으면 → shared.
+    OSM 상 보도 분리가 불확실한 도로 유형이면 더 낮은 비중에서도 shared."""
+    if not frames:
+        return "none"
+    if np.mean([not f.sidewalk_present for f in frames]) >= vanish_frac:
+        return "none"
+    veh = float(np.mean([f.vehicles_on_walk > 0 for f in frames if f.sidewalk_present]))
+    th = shared_frac_osm if highway in SHARED_HIGHWAYS else shared_frac
+    return "shared" if veh >= th else "sidewalk"
+
+
 def score_link(link_id: str, frames: Sequence[FrameAnalysis], profile: Profile = PEDESTRIAN,
-               type_min_frac: float = 0.2, min_vanish_run: int = 3) -> LinkScore | None:
+               type_min_frac: float = 0.2, min_vanish_run: int = 3, highway: str | None = None) -> LinkScore | None:
     """링크 하나의 점수(frames 는 시간순). 프레임이 없으면 None."""
     frames = drop_short_gaps(frames, min_vanish_run)
     if not frames:
@@ -177,16 +199,17 @@ def score_link(link_id: str, frames: Sequence[FrameAnalysis], profile: Profile =
                      round(p10, 3), round(float(np.median(r)), 3), round(below, 3), round(tw, 3),
                      {k: round(v, 3) for k, v in fracs.items()},
                      round(float(np.median(fw)), 2) if len(fw) else None,
-                     round(float((fw < LEGAL_MIN_WIDTH_M).mean()), 3) if len(fw) else None)
+                     round(float((fw < LEGAL_MIN_WIDTH_M).mean()), 3) if len(fw) else None,
+                     space_type_of(frames, highway))
 
 
 def score_links(frames_by_link: Mapping[str, Sequence[FrameAnalysis]], profile: Profile = PEDESTRIAN,
-                min_frames: int = 3) -> list[LinkScore]:
+                min_frames: int = 3, highway_by_link: Mapping[str, str] | None = None) -> list[LinkScore]:
     out = []
     for lid, frs in frames_by_link.items():
         if len(frs) < min_frames:
             continue
-        ls = score_link(lid, frs, profile)
+        ls = score_link(lid, frs, profile, highway=(highway_by_link or {}).get(lid))
         if ls is not None:
             out.append(ls)
     return sorted(out, key=lambda x: -x.score)

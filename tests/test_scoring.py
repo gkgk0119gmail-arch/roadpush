@@ -109,3 +109,19 @@ def test_pedestrians_do_not_reduce_width():
     stall = ppl.copy()
     fa2 = analyze_frame({"sidewalk": [sw], "other_fixed": [stall]}, (H, W))
     assert fa2.n_obstacles_on_sidewalk == 1 and fa2.ratio < 0.7
+
+
+def test_shared_street_detection():
+    from roadpush.scoring import space_type_of
+    sw = _sidewalk()
+    car = np.zeros((H, W), dtype=bool); car[130:199, 120:180] = True; sw2 = sw.copy(); sw2[130:199, 120:180] = False
+    fa = analyze_frame({"sidewalk": [sw2], "car": [car]}, (H, W))
+    assert fa.vehicles_on_walk == 1 and "shared" in fa.tags
+    clean = FrameAnalysis(0.95, 0.95, True, [])
+    veh = FrameAnalysis(0.6, 0.6, True, ["shared"], 1, None, None, 1)
+    frames = [veh] * 2 + [clean] * 8                       # 차량 프레임 20%
+    assert space_type_of(frames, "footway") == "sidewalk"   # 분리 보도 도로: 30% 기준
+    assert space_type_of(frames, "pedestrian") == "shared"  # 보행자 우선도로: 15% 기준
+    assert space_type_of([_f(0.0, ["vanish"], False)] * 6 + [clean] * 4) == "none"
+    s = score_link("m", [veh] * 5 + [clean] * 5, highway="pedestrian")
+    assert s.space_type == "shared" and s.primary_type == "shared"

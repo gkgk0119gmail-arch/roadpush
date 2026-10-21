@@ -38,6 +38,7 @@ CHECKS: dict[str, tuple[str, tuple[str, ...]]] = {
     "construction": ("사진에 공사 구간이나 공사용 펜스·바리케이드가 있습니까?", ("repair_zone", "barricade")),
     "stairs": ("사진에 계단이나 높은 턱이 있습니까?", ("stairs",)),
     "pushed_to_road": ("이 지점에서 보행자가 차도나 차량 통행로로 내려가야 지나갈 수 있습니까?", ()),
+    "shared_street": ("이 길은 차도와 보도의 구분(연석·펜스) 없이 차량과 보행자가 같은 공간을 다니는 길입니까?", ()),
 }
 
 SYSTEM = ("당신은 지자체 보도 점검 담당자를 돕는 시각 검사원입니다. 사진에 실제로 보이는 것만 답하고, "
@@ -141,6 +142,8 @@ TYPE_GUIDE = {
     "narrow": ("보도는 있으나 장애물로 통과 폭이 좁아진 구간이다. 확인된 요소를 원인으로 쓴다.",
                "불법 주정차 단속(차량·이륜차)·적치물·입간판 정비·볼라드/시설물 재배치"),
     "repair": ("공사·파손으로 통행이 막힌 구간이다.", "공사 구간 임시 보행로 확보·안내 표지·파손 보수"),
+    "shared": ("보도블록이 깔려 있어도 차량이 보행 공간 안으로 들어오는 보차 혼용 구간이다.",
+               "보행자 우선도로 지정·차량 통행 시간제·20~30 km/h 속도 제한·조업 차량 정차 구역 지정"),
     "stairs": ("계단·턱으로 휠체어·유모차 통행이 막힌 구간이다.", "경사로·턱 낮춤 설치"),
     "none": ("측정상 큰 단절은 없다.", "정기 모니터링"),
 }
@@ -153,6 +156,7 @@ def explain_prompt(link: dict, frames: list[dict]) -> str:
     return (
         "아래는 한 도로 구간(링크)에서 AI가 측정한 결과와 해당 구간의 가장 나쁜 프레임 사진입니다.\n"
         f"링크 점수 {link['score']:.0f}/100 ({link['grade']}), 대표 단절 유형: {link['primary_type_ko']}, "
+        f"공간 유형: {link.get('space_type_ko', '-')}, "
         f"하위 10% 유효보행폭 비율 {link['p10_ratio']:.2f}, 비율 0.5 미만 프레임 비중 {link['frac_below'] * 100:.0f}%.\n"
         + "\n".join(lines) + "\n\n"
         f"유형 규칙: {TYPE_GUIDE.get(link['primary_type'], TYPE_GUIDE['none'])[0]}\n"
@@ -207,7 +211,8 @@ def explain(args) -> None:
             memo = json.loads(m.group(0)) if m else {}
         except json.JSONDecodeError:
             memo = {}
-        out[L.link_id] = {"memo": memo, "raw": raw if not memo else "", "pushed_to_road":
+        out[L.link_id] = {"memo": memo, "shared_street_vlm":
+                          sum(bool(e["vlm"].get("shared_street")) for e in evid) / max(1, len(evid)), "raw": raw if not memo else "", "pushed_to_road":
                           sum(bool(e["vlm"].get("pushed_to_road")) for e in evid) / max(1, len(evid)),
                           "frames": [{k: e[k] for k in ("frame", "ratio", "vlm", "seg", "confirmed")} for e in evid]}
         print(f"  {L.link_id} {L.score:.0f} → {memo.get('cause', raw[:60])}", flush=True)

@@ -27,7 +27,7 @@ def load_frame_results(path: Path) -> dict[str, FrameAnalysis]:
             r = json.loads(line)
             out[r["frame"]] = FrameAnalysis(r["ratio"], r["min_ratio"], r["sidewalk_present"], r["tags"],
                                             r.get("n_obstacles_on_sidewalk", 0), r.get("width_m"),
-                                            r.get("free_width_m"))
+                                            r.get("free_width_m"), r.get("vehicles_on_walk", 0))
     return out
 
 
@@ -53,8 +53,9 @@ def write_scored_geojson(links_path: Path, by_link, out: Path, session: str) -> 
     import geopandas as gpd
 
     links = gpd.read_file(links_path).set_index("link_id")
-    ped = {s.link_id: s for s in score_links(by_link, PEDESTRIAN)}
-    wc = {s.link_id: s for s in score_links(by_link, WHEELCHAIR)}
+    hw = links["highway"].to_dict()
+    ped = {s.link_id: s for s in score_links(by_link, PEDESTRIAN, highway_by_link=hw)}
+    wc = {s.link_id: s for s in score_links(by_link, WHEELCHAIR, highway_by_link=hw)}
     rows = []
     for lid, s in ped.items():
         w = wc[lid]

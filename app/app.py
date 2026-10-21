@@ -84,8 +84,9 @@ def link_map(gdf: gpd.GeoDataFrame, score_col: str, grade_col: str, type_col: st
         g = gdf.copy()
         g["유형"] = g[type_col].map(TYPE_LABEL_KO)
         g["_color"] = [color_fn(r) if color_fn else GRADE_COLOR.get(r[grade_col], "#888") for _, r in g.iterrows()]
-        fields = ["link_id", "name", score_col, grade_col, "유형", "n_frames"] + (tooltip_extra or [])
-        aliases = ["링크", "도로명", "점수", "등급", "단절 유형", "프레임"] + (tooltip_extra or [])
+        g["공간"] = g["space_type_ko"] if "space_type_ko" in g else "-"
+        fields = ["link_id", "name", score_col, grade_col, "유형", "공간", "n_frames"] + (tooltip_extra or [])
+        aliases = ["링크", "도로명", "점수", "등급", "단절 유형", "공간 유형", "프레임"] + (tooltip_extra or [])
         folium.GeoJson(
             g[fields + ["_color", "geometry"]],
             style_function=lambda f: {"color": f["properties"]["_color"], "weight": 7, "opacity": 0.9},
@@ -153,7 +154,7 @@ def page_detail(session: str, profile: str):
     r = gdf.set_index("link_id").loc[lid]
     c = st.columns(4)
     c[0].metric("점수", f"{r[score_col]:.1f}", r[grade_col], delta_color="off")
-    c[1].metric("단절 유형", TYPE_LABEL_KO[r[type_col]])
+    c[1].metric("단절 유형", TYPE_LABEL_KO[r[type_col]], r.get("space_type_ko", ""), delta_color="off")
     c[2].metric("P10 / 중앙 비율", f"{r.p10_ratio:.2f} / {r.median_ratio:.2f}")
     c[3].metric(f"비율<θ 프레임", f"{r.frac_below * 100:.0f}%")
     if "median_free_width_m" in r and pd.notna(r.get("median_free_width_m")):
