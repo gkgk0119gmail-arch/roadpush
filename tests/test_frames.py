@@ -32,3 +32,21 @@ def test_smooth_keeps_length_and_straight_line():
 
 def test_frame_times():
     assert frame_times(3, 1.0).tolist() == [0.5, 1.5, 2.5]
+
+
+def test_merge_runs(tmp_path):
+    import csv, json
+    from roadpush.merge_runs import merge
+    runs = []
+    for k in ("a", "b"):
+        r = tmp_path / k; (r / "frames").mkdir(parents=True); (r / "overlay").mkdir()
+        (r / "frames" / "frame_000001.jpg").write_bytes(b"x"); (r / "overlay" / "frame_000001.jpg").write_bytes(b"x")
+        with open(r / "frames.csv", "w", newline="") as f:
+            w = csv.writer(f); w.writerow(["frame", "t_sec", "utc", "lat", "lon", "gps_ok"]); w.writerow(["frame_000001.jpg", "0.5", "", "37.5", "126.9", 1])
+        (r / "frame_results.jsonl").write_text(json.dumps({"frame": "frame_000001.jpg", "ratio": 1.0}) + "\n")
+        runs.append((k, r))
+    out = tmp_path / "m"
+    assert merge(runs, out) == 2
+    names = [r["frame"] for r in csv.DictReader(open(out / "frames.csv"))]
+    assert names == ["a_frame_000001.jpg", "b_frame_000001.jpg"]
+    assert (out / "overlay" / "b_frame_000001.jpg").exists()
