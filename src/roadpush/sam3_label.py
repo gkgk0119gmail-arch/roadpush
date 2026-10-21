@@ -114,7 +114,7 @@ def main(argv: list[str] | None = None) -> None:
         files = sorted(p for p in args.images.iterdir() if p.suffix.lower() in IMG_EXTS)
         ims = [{"id": i + 1, "file_name": p.name} for i, p in enumerate(files)]
     if args.max_images:
-        ims = ims[: args.max_images]
+        ims = ims[:: max(1, len(ims) // args.max_images)][: args.max_images]   # 폴더 고루 샘플
 
     prompts = {c: PROMPTS[c] for c in args.classes.split(",")} if args.classes else PROMPTS
     teacher = Sam3Teacher(args.threshold)
