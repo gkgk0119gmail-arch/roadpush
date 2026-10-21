@@ -55,6 +55,7 @@ Polygon valid **200장**(폴더 고루 샘플), GT 면적 ≥ 1500 px² 객체�
 | A안 surface (Medium) **최종** (10 ep, best EMA) | surface_v1 | **Surface valid 전체 954장**, 면 | mIoU **0.670**, sidewalk 0.860, 비율 MAE **0.015**, ≤0.1 97.8 %, 소멸 F1 0.915 |
 | (참고) 같은 모델 ep3 | surface_v1 | Surface valid 전체 954장 | mIoU 0.605, 비율 MAE 0.022, 소멸 F1 0.908 |
 | A안 obstacle (Medium) **최종** (10 ep) | polygon_v1 | **Polygon valid 전체 1,566장**, 장애물 11종 | mIoU **0.736** (car 0.909 · person 0.873 · truck_bus 0.797 · two_wheeler 0.777 · pole 0.769 · bollard 0.752 · movable_signage 0.648 · potted_plant 0.637 · barricade 0.614 · other_moving 0.584) |
+| A안 obstacle **v2** (8 ep, 희소 클래스 보강) | polygon_v2 (v1 + Polygon 1~10 중 barricade·other_moving·potted_plant·movable_signage 포함 이미지) | **Polygon v1 valid 1,566장(동일)** | mIoU **0.755** (+0.019) · movable_signage 0.718(+0.07) · barricade 0.676(+0.06) · truck_bus 0.850(+0.05) · car 0.924 · bollard 0.768 · potted_plant 0.655 — **채택** |
 | (공정 비교) 같은 모델 | polygon_v1 | teacher 비교와 같은 150장, 프롬프트 9종 | mIoU **0.701** vs SAM 3 0.518 · GDINO+SAM2 0.373 |
 | B안 unified (Medium) ep1 (중간) | unified_v1 (GT 12만 + SAM 3 보강 14만) | 같은 150장 | 면 mIoU 0.597 · 비율 MAE 0.019 · 소멸 F1 0.881 · 장애물 mIoU 0.574 (A안 최종: 0.742 · 0.038 · 0.886 · 0.680) |
 | B안 unified (Medium) **최종** | unified_v1 | 전체 valid (면 954 · 장애물 1,566) | 면 mIoU 0.640 · 비율 MAE 0.0186 · 소멸 F1 0.913 · 장애물 mIoU 0.706 |
