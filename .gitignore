@@ -35,3 +35,4 @@ __pycache__/
 cache/
 dist/
 .mapillary_token
+.hf_token_write

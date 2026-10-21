@@ -32,15 +32,27 @@ title: RoadPush 보행공간 단절 위험도
 emoji: 🚶
 colorFrom: green
 colorTo: red
-sdk: streamlit
-sdk_version: "{sdk}"
-app_file: app.py
+sdk: docker
+app_port: 7860
 pinned: false
 license: apache-2.0
 ---
 
 RoadPush — 보행 촬영 영상으로 도로 링크별 유효보행폭 비율과 단절 위험도를 산출하는 PoC
 (2026 AI 라이프 솔루션 챌린지). 모델: RF-DETR-Seg (Apache 2.0), AI Hub 인도보행 영상 파인튜닝.
+"""
+
+# HF Spaces 는 streamlit SDK 를 더 지원하지 않음(gradio|docker|static) → Docker 로 streamlit 실행
+DOCKERFILE = """FROM python:3.11-slim
+RUN useradd -m -u 1000 user
+ENV HOME=/home/user PATH=/home/user/.local/bin:$PATH PIP_NO_CACHE_DIR=1 OMP_NUM_THREADS=2
+WORKDIR /home/user/app
+COPY --chown=user requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
+COPY --chown=user . .
+USER user
+EXPOSE 7860
+CMD ["streamlit", "run", "app.py", "--server.port=7860", "--server.address=0.0.0.0", "--server.headless=true", "--browser.gatherUsageStats=false"]
 """
 
 REQUIREMENTS = """--extra-index-url https://download.pytorch.org/whl/cpu
@@ -56,13 +68,12 @@ geopandas
 shapely
 pyproj
 folium
+streamlit
 streamlit-folium
 """
 
 
 def main(argv: list[str] | None = None) -> None:
-    import streamlit
-
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", type=Path, default=ROOT / "dist" / "space")
     ap.add_argument("--sessions", nargs="+", type=Path, required=True)
@@ -113,7 +124,8 @@ def main(argv: list[str] | None = None) -> None:
     app_src = app_src.replace('SIZE = os.environ.get("ROADPUSH_SIZE", "medium")',
                               f'SIZE = os.environ.get("ROADPUSH_SIZE", "{args.size}")')
     (out / "app.py").write_text(app_src, encoding="utf-8")
-    (out / "README.md").write_text(README.format(sdk=streamlit.__version__), encoding="utf-8")
+    (out / "README.md").write_text(README, encoding="utf-8")
+    (out / "Dockerfile").write_text(DOCKERFILE, encoding="utf-8")
     (out / "requirements.txt").write_text(REQUIREMENTS, encoding="utf-8")
     (out / ".gitattributes").write_text("*.pth filter=lfs diff=lfs merge=lfs -text\n*.jpg filter=lfs diff=lfs merge=lfs -text\n")
     total = sum(p.stat().st_size for p in out.rglob("*") if p.is_file())

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoadPush 보행공간 단절 위험도</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="brand"><b>RoadPush</b> <span>보행공간 단절 위험도</span></div>
+  <nav id="tabs">
+    <button data-tab="map" class="on">지도</button>
+    <button data-tab="detail">링크 상세</button>
+    <button data-tab="upload">사진 분석</button>
+    <button data-tab="method">방법·출처</button>
+  </nav>
+</header>
+
+<section id="controls">
+  <label>세션 <select id="session"></select></label>
+  <span class="seg" id="profile">
+    <button data-p="ped" class="on">일반 보행자</button><button data-p="wc">휠체어</button>
+  </span>
+  <span id="attrib" class="muted"></span>
+</section>
+
+<main>
+  <section class="tab on" id="tab-map">
+    <div id="stats" class="statgrid"></div>
+    <div class="cols">
+      <div id="map"></div>
+      <div class="side">
+        <h3>조치 우선순위</h3>
+        <table id="prio"><thead><tr><th>도로</th><th>점수</th><th>등급</th><th>유형</th></tr></thead><tbody></tbody></table>
+        <p class="muted small">행을 누르면 링크 상세로 이동합니다. 등급: 안전 &lt;30 · 주의 30~60 · 위험 ≥60</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-detail">
+    <div id="detail"><p class="muted">지도나 우선순위 표에서 링크를 고르세요.</p></div>
+  </section>
+
+  <section class="tab" id="tab-upload">
+    <p>보행자 시점 사진을 올리면 <b>브라우저 안에서</b> AI가 보도와 장애물을 분할하고 유효보행폭 비율을 계산합니다. 사진은 서버로 전송되지 않습니다.</p>
+    <div class="row">
+      <input type="file" id="file" accept="image/*">
+      <span id="samples"></span>
+    </div>
+    <p id="ustatus" class="muted">처음 실행 시 AI 모델(약 280 MB)을 한 번 내려받습니다.</p>
+    <div class="cols">
+      <canvas id="ucanvas"></canvas>
+      <div class="side" id="uresult"></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-method"><div id="method"></div></section>
+</main>
+
+<footer class="muted small">
+  지도 © OpenStreetMap contributors (ODbL) · 거리 사진 © Mapillary contributors (CC BY-SA 4.0) · 학습 데이터 AI Hub 인도보행 영상 ·
+  모델 RF-DETR-Seg (Apache 2.0) · 코드 Apache-2.0
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<script src="infer.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
