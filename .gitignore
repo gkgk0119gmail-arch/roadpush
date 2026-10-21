@@ -32,3 +32,4 @@ __pycache__/
 ~$*
 .hf_token
 .aihub_key
+cache/
