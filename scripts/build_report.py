@@ -31,7 +31,8 @@ def numbers() -> dict:
     surf = _j("outputs/eval/eval_surface_final_full_v2.json")
     s150 = _j("outputs/eval/eval_surface_final_150_v2.json")
     sam3 = _j("outputs/teachers/eval_sam3_surface_v2.json")
-    obs = _j("outputs/eval/eval_obstacle_final_full.json")
+    obs = _j("outputs/eval/eval_obstacle_v2_full.json") or _j("outputs/eval/eval_obstacle_final_full.json")
+    push = _j("docs/figures/push_stats.json")
     sam3o = _j("outputs/teachers/eval_sam3_obstacle.json")
     f = lambda d, k, fmt: fmt.format(d[k]) if k in d else "평가 중"  # noqa: E731
     n = {
@@ -46,14 +47,12 @@ def numbers() -> dict:
         n["x_better"] = f"{sam3['ratio_mae'] / s150['ratio_mae']:.1f}배"
     else:
         n["x_better"] = "-"
-    try:
-        import geopandas as gpd
-        g = gpd.read_file(ROOT / "outputs/mly_junggu_2025/links_scored.geojson")
-        n["links"] = str(len(g))
-        n["grades"] = " · ".join(f"{k} {int((g.grade == k).sum())}" for k in ("위험", "주의", "안전"))
-        n["shared"] = str(int((g.space_type == "shared").sum())) if "space_type" in g else "-"
-    except Exception:
-        n.update(links="-", grades="-", shared="-")
+    if push:
+        n.update(links=str(push["measured"]), km=str(push["measured_km"]), push_links=str(push["links"]),
+                 push_km=str(push["km"]), shared=str(push["shared"]), frames=f"{push['frames']:,}",
+                 grades=" · ".join(f"{k} {v}" for k, v in push["grades"].items()))
+    else:
+        n.update(links="-", km="-", push_links="-", push_km="-", shared="-", frames="-", grades="-")
     return n
 
 
@@ -107,8 +106,8 @@ def build(out: Path) -> Path:
     stat(s1, 3.5, 21.0, n["ratio_mae"], "유효보행폭 비율 오차(MAE)\nAI Hub 검증 " + n["n_surf"] + "장")
     stat(s1, 16.5, 21.0, n["x_better"], "zero-shot SAM 3 대비\n비율 오차 감소")
     stat(s1, 3.5, 28.0, "서버 0대", "브라우저 안 AI 추론(ONNX)\nGPU 없이 지자체 PC에서")
-    stat(s1, 16.5, 28.0, n["links"] + "개", f"명동 실측 링크 ({n['grades']})\n보차 혼용 {n['shared']}개 식별")
-    picture(s1, FIG / "fig_map.png", 36.0, 5.5, h=31.0)
+    stat(s1, 16.5, 28.0, n["push_links"] + "개", f"차도로 밀려나는 링크 ({n['push_km']} km)\n서울 도심 {n['links']}개 링크·{n['km']} km 중")
+    picture(s1, FIG / "fig_push_map.png", 34.5, 6.0, w=32.0)
 
     # ---- p2 아이디어명 / 기술요약
     text(s2, 3.5, 6.0, 60, 6, [
@@ -128,14 +127,14 @@ def build(out: Path) -> Path:
     text(s3, 3.5, 6.0, 30, 7, [
         ("4. 최종목표", 26, True, INK),
         ("• 걸으며 눈으로 하던 보도 점검을, 촬영 영상만으로 링크 단위 정량 지표로 바꾸는 PoC", 19, False, INK),
-        ("• 실제 거리(서울 명동·을지로) 공개 사진으로 링크 위험도·조치 메모까지 자동 산출", 19, False, INK)])
+        ("• 서울 도심(중구·종로) 실제 거리 사진으로 링크 위험도·차도로 밀려나는 구간·조치 메모까지 자동 산출", 19, False, INK)])
     rows = [("단계", "내용", "결과"),
             ("데이터", "AI Hub 인도보행 영상 → 20종 COCO, 폴더 단위 분할", "보도면 9.6천·장애물 1.5만 장"),
             ("모델", "RF-DETR-Seg Medium 파인튜닝 (RTX 3090)", f"보도면 mIoU {n['surf_miou']} · 장애물 mIoU {n['obs_miou']}"),
             ("핵심 지표", "유효보행폭 비율(병목, 통과 여유)", f"MAE {n['ratio_mae']} · ±0.1 이내 {n['within']}"),
             ("판정", "소멸·협소·공사·단차·보차 혼용", f"보도 소멸 F1 {n['vanish_f1']}"),
             ("teacher", "SAM 3 vs Grounding DINO zero-shot 비교", f"비율 MAE {n['sam3_mae150']} → {n['mae150']}, 장애물 mIoU 0.52 → 0.70"),
-            ("실사진", "Mapillary(CC BY-SA) 명동·을지로 + OSM 링크", f"명동 {n['links']}링크 · {n['grades']}"),
+            ("실사진", f"Mapillary(CC BY-SA) 도심 {n['frames']}장(360° 변환 포함) + OSM", f"{n['links']}링크 · 밀려남 {n['push_links']}개({n['push_km']} km)"),
             ("서비스", "정적 웹앱(지도·상세·사진 분석) · 브라우저 안 ONNX 추론", "HF Space 무료 · 서버 없음")]
     tbl = s3.shapes.add_table(len(rows), 3, Cm(3.5), Cm(13.6), Cm(30.5), Cm(17)).table
     for c, wcm in enumerate((5.0, 13.5, 12.0)):
@@ -151,7 +150,7 @@ def build(out: Path) -> Path:
         ("차별점: '단절'은 객체가 아니라 공간 관계 → 객체 검출을 넘어 기하 후처리로 통과 폭을 정량화. "
          "파운데이션 모델(SAM 3)은 라벨링 teacher로만, 배포는 CPU에서 도는 경량 모델.", 16, False, INK2)])
     picture(s3, FIG / "fig_compare.png", 35.0, 6.0, w=30.0)
-    picture(s3, FIG / "fig_frames.png", 35.0, 15.5, w=30.0)
+    picture(s3, FIG / "fig_push_gallery.png", 35.0, 15.5, w=30.0)
 
     # ---- p4 애로점 / 기대효과
     text(s4, 3.5, 6.0, 29, 30, [

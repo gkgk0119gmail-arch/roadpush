@@ -287,7 +287,12 @@ def fig_push(session: Path, links: Path, out: Path, min_frac: float = 0.3) -> di
         fig.tight_layout()
         fig.savefig(out / "fig_push_gallery.png", dpi=150, bbox_inches="tight")
         plt.close(fig)
-    return {"links": int(len(push)), "km": round(float(push.length_m.sum() / 1000), 1), "measured": int(len(g))}
+    stats = {"links": int(len(push)), "km": round(float(push.length_m.sum() / 1000), 1), "measured": int(len(g)),
+             "measured_km": round(float(g.length_m.sum() / 1000), 1),
+             "grades": {k: int((g.grade == k).sum()) for k in ("위험", "주의", "안전")},
+             "shared": int((g.space_type == "shared").sum()), "frames": len(rs)}
+    (out / "push_stats.json").write_text(json.dumps(stats, ensure_ascii=False, indent=1))
+    return stats
 
 
 def main(argv: list[str] | None = None) -> None:
