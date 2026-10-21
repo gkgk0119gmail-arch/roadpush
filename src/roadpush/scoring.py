@@ -22,7 +22,8 @@ from typing import Iterable, Mapping, Sequence
 
 import numpy as np
 
-from .classes import BLOCKING_SURFACES, OBSTACLE_CLASSES, TRANSIENT_CLASSES, VEHICLE_CLASSES, WALKABLE_SURFACES
+from .classes import (BLOCKING_SURFACES, OBSTACLE_CLASSES, SURFACE_CLASSES, TRANSIENT_CLASSES, VEHICLE_CLASSES,
+                      WALKABLE_SURFACES)
 from .width_ratio import FrameResult, Mask, frame_ratio, obstacles_on_sidewalk
 
 TYPE_WEIGHTS = {"vanish": 1.0, "repair": 0.8, "shared": 0.7, "stairs": 0.6}
@@ -60,6 +61,7 @@ class FrameAnalysis:
     width_m: float | None = None          # 보조: 보도 폭(m)
     free_width_m: float | None = None     # 보조: 가장 좁은 통과 가능 폭(m)
     vehicles_on_walk: int = 0             # 보행 공간 안 차량·이륜차 수 (보차 혼용 신호)
+    ground_frac: float | None = None      # 하단 절반 중 바닥면(보도·차도·골목 등) 비중. 낮으면 측정 불가
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -79,7 +81,7 @@ def _lower_band(shape: tuple[int, int], top: float = 0.5) -> Mask:
 
 
 def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, int],
-                  tag_min_frac: float = 0.05, cam_h: float = 1.3) -> FrameAnalysis:
+                  tag_min_frac: float = 0.05, cam_h: float = 1.3, min_ground: float = 0.15) -> FrameAnalysis:
     """클래스명 → 인스턴스 마스크 리스트 를 받아 프레임 지표 계산.
 
     repair/stairs 태그: 하단 절반에서 해당 면적이 (보도 ∪ 해당 면) 대비 tag_min_frac 이상.
@@ -96,10 +98,13 @@ def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, i
     n_veh = sum(1 for c in VEHICLE_CLASSES for m in class_masks.get(c, ()) if (m & obstacle).any())
     fr: FrameResult = frame_ratio(walk, obstacle, cam_h=cam_h)
 
+    band = _lower_band(shape)
+    ground = _union((m for c in SURFACE_CLASSES for m in class_masks.get(c, ())), shape) | walk
+    ground_frac = float((ground & band).sum() / max(1, band.sum()))
     tags: list[str] = []
     if not fr.sidewalk_present:
-        tags.append("vanish")
-    band = _lower_band(shape)
+        # 바닥이 거의 안 보이면(가게 진열창·근접 촬영·흔들림) 보도 소멸이 아니라 측정 불가
+        tags.append("vanish" if ground_frac >= min_ground else "noview")
     walk_band = int((walk & band).sum())
     for cls, tag in (("repair_zone", "repair"), ("stairs", "stairs")):
         area = int((_union(class_masks.get(cls, ()), shape) & band).sum())
@@ -109,7 +114,7 @@ def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, i
     if n_veh and fr.sidewalk_present:
         tags.append("shared")
     return FrameAnalysis(fr.ratio, fr.min_ratio, fr.sidewalk_present, tags, n_on,
-                         mw.width_m if mw else None, mw.min_free_m if mw else None, n_veh)
+                         mw.width_m if mw else None, mw.min_free_m if mw else None, n_veh, round(ground_frac, 3))
 
 
 # ---------------------------------------------------------------- 링크
@@ -174,8 +179,8 @@ def space_type_of(frames: Sequence[FrameAnalysis], highway: str | None = None, v
 
 def score_link(link_id: str, frames: Sequence[FrameAnalysis], profile: Profile = PEDESTRIAN,
                type_min_frac: float = 0.2, min_vanish_run: int = 3, highway: str | None = None) -> LinkScore | None:
-    """링크 하나의 점수(frames 는 시간순). 프레임이 없으면 None."""
-    frames = drop_short_gaps(frames, min_vanish_run)
+    """링크 하나의 점수(frames 는 시간순). 프레임이 없으면 None. 측정 불가(noview) 프레임은 제외."""
+    frames = drop_short_gaps([f for f in frames if "noview" not in f.tags], min_vanish_run)
     if not frames:
         return None
     r = np.array([f.ratio if f.sidewalk_present else 0.0 for f in frames], dtype=float)

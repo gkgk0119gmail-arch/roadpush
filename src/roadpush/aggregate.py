@@ -25,9 +25,15 @@ def load_frame_results(path: Path) -> dict[str, FrameAnalysis]:
     with open(path, encoding="utf-8") as f:
         for line in f:
             r = json.loads(line)
-            out[r["frame"]] = FrameAnalysis(r["ratio"], r["min_ratio"], r["sidewalk_present"], r["tags"],
+            tags = list(r["tags"])
+            if r.get("ground_frac") is None and not r["sidewalk_present"]:
+                # 구버전 결과: 바닥면 클래스가 하나도 검출 안 됐으면 측정 불가로
+                c = r.get("counts", {})
+                if not any(c.get(k, 0) for k in ("roadway", "alley", "bike_lane", "sidewalk", "braille_guide_blocks")):
+                    tags = [t if t != "vanish" else "noview" for t in tags]
+            out[r["frame"]] = FrameAnalysis(r["ratio"], r["min_ratio"], r["sidewalk_present"], tags,
                                             r.get("n_obstacles_on_sidewalk", 0), r.get("width_m"),
-                                            r.get("free_width_m"), r.get("vehicles_on_walk", 0))
+                                            r.get("free_width_m"), r.get("vehicles_on_walk", 0), r.get("ground_frac"))
     return out
 
 

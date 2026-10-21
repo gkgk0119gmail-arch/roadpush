@@ -3,7 +3,7 @@
 
 const BASE = "./";
 const GRADE_COLOR = { 위험: "#d03b3b", 주의: "#fab219", 안전: "#0ca30c" };
-const TYPE_KO = { vanish: "보도 소멸", narrow: "폭 협소", repair: "공사·파손", stairs: "단차·계단", shared: "보차 혼용", none: "이상 없음" };
+const TYPE_KO = { noview: "바닥이 보이지 않음(측정 불가)", vanish: "보도 소멸", narrow: "폭 협소", repair: "공사·파손", stairs: "단차·계단", shared: "보차 혼용", none: "이상 없음" };
 const state = { sessions: [], s: null, profile: "ped", links: null, frames: {}, memos: {}, layer: null, base: null, sel: null };
 const $ = (q) => document.querySelector(q);
 const esc = (t) => String(t == null ? "" : t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -156,7 +156,7 @@ async function runUpload(src) {
     const cnt = {}; seg.inst.forEach((i) => cnt[i.cls] = (cnt[i.cls] || 0) + 1);
     st.textContent = `완료 (${((performance.now() - t) / 1000).toFixed(1)}초)`;
     $("#uresult").innerHTML = `
-      <div class="stat"><div class="l">유효보행폭 비율(병목)</div><div class="v">${a.present ? a.ratio.toFixed(2) : "보도 없음"}</div></div>
+      <div class="stat"><div class="l">유효보행폭 비율(병목)</div><div class="v">${a.present ? a.ratio.toFixed(2) : a.tags.includes("noview") ? "측정 불가" : "보도 없음"}</div></div>
       <p>단절 태그: ${a.tags.map((x) => TYPE_KO[x]).join(", ") || "없음"}<br>보도 위 장애물 ${a.nObstacles}개 · 보행 공간 안 차량 ${a.nVehicles}대</p>
       <div class="legend">${Object.entries({ 보도: RP.COLORS.sidewalk, 차도: RP.COLORS.roadway, 골목: RP.COLORS.alley, 점자블록: RP.COLORS.braille_guide_blocks,
         "맨홀·배수구": RP.COLORS.manhole_grating, 장애물: RP.OBST_RGB, "보행자(제외)": RP.TRANS_RGB }).map(([k, c]) => `<span><i style="background:rgb(${c})"></i>${k}</span>`).join("")}</div>

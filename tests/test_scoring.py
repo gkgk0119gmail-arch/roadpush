@@ -31,7 +31,8 @@ def test_analyze_frame_car_on_sidewalk_and_roadway():
 
 
 def test_analyze_frame_vanish_and_repair():
-    fa = analyze_frame({}, (H, W))
+    alley = np.zeros((H, W), dtype=bool); alley[100:, :] = True      # 보도 없이 골목만
+    fa = analyze_frame({"alley": [alley]}, (H, W))
     assert not fa.sidewalk_present and fa.tags == ["vanish"]
     rep = np.zeros((H, W), dtype=bool); rep[150:, 150:250] = True
     fa = analyze_frame({"sidewalk": [_sidewalk()], "repair_zone": [rep]}, (H, W))
@@ -125,3 +126,13 @@ def test_shared_street_detection():
     assert space_type_of([_f(0.0, ["vanish"], False)] * 6 + [clean] * 4) == "none"
     s = score_link("m", [veh] * 5 + [clean] * 5, highway="pedestrian")
     assert s.space_type == "shared" and s.primary_type == "shared"
+
+
+def test_noview_frames_excluded():
+    fa = analyze_frame({}, (H, W))                     # 바닥이 전혀 안 보임 → 측정 불가
+    assert fa.tags == ["noview"] and fa.ground_frac == 0
+    road = np.zeros((H, W), dtype=bool); road[100:, :] = True
+    assert analyze_frame({"alley": [road]}, (H, W)).tags == ["vanish"]   # 골목만 보임 → 보도 소멸
+    nov = FrameAnalysis(0.0, 0.0, False, ["noview"])
+    s = score_link("x", [_f(0.95)] * 5 + [nov] * 6)
+    assert s.n_frames == 5 and s.primary_type == "none"

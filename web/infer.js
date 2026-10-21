@@ -12,6 +12,8 @@ const RP = (() => {
     "potted_plant", "person", "other_fixed", "other_moving"]);
   const TRANSIENT = new Set(["person", "other_moving"]);
   const VEHICLES = new Set(["car", "truck_bus", "two_wheeler"]);
+  const SURFACES = new Set(["sidewalk", "braille_guide_blocks", "roadway", "alley", "bike_lane", "stairs", "repair_zone",
+    "manhole_grating", "tree_zone"]);
   const ROWS = [0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9];
   const COLORS = {
     sidewalk: [60, 180, 75], braille_guide_blocks: [255, 225, 25], roadway: [128, 128, 128], alley: [170, 110, 40],
@@ -137,15 +139,19 @@ const RP = (() => {
     const present = ratios.length >= Math.ceil(0.5 * ROWS.length);
     const sorted = ratios.slice().sort((a, b) => a - b);
     const ratio = present ? (sorted[0] + (sorted.length > 1 ? sorted[1] : sorted[0])) / 2 : 0;
-    const tags = []; if (!present) tags.push("vanish");
     const band0 = Math.floor(H * 0.5); let wb = 0; for (let k = band0 * W; k < N; k++) wb += walk[k];
+    // 하단 절반의 바닥면 비중: 낮으면(가게 진열창·근접 촬영) 보도 소멸이 아니라 측정 불가
+    const ground = new Uint8Array(N); for (const i of by((c) => SURFACES.has(c))) for (let k = band0 * W; k < N; k++) ground[k] |= i.mask[k];
+    let g = 0; for (let k = band0 * W; k < N; k++) g += ground[k] | walk[k];
+    const groundFrac = g / Math.max(1, N - band0 * W);
+    const tags = []; if (!present) tags.push(groundFrac >= 0.15 ? "vanish" : "noview");
     for (const [cls, tag] of [["repair_zone", "repair"], ["stairs", "stairs"]]) {
       let a = 0; for (const i of by((c) => c === cls)) for (let k = band0 * W; k < N; k++) a += i.mask[k];
       if (a && a / Math.max(1, wb + a) >= 0.05) tags.push(tag);
     }
     const nVeh = kept.filter((i) => VEHICLES.has(i.cls)).length;
     if (nVeh && present) tags.push("shared");
-    return { ratio, present, tags, nObstacles: kept.length, nVehicles: nVeh, walk, obst };
+    return { ratio, present, tags, groundFrac, nObstacles: kept.length, nVehicles: nVeh, walk, obst };
   }
 
   function render(canvas, img, seg) {
