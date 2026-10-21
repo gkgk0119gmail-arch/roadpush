@@ -51,7 +51,8 @@ Polygon valid 40장, GT 면적 ≥ 1500 px² 객체를 '있음'으로.
 |---|---|---|---|
 | A안 surface (Medium) **최종** (10 ep, best EMA) | surface_v1 | **Surface valid 전체 954장**, 면 | mIoU **0.670**, sidewalk 0.860, 비율 MAE **0.015**, ≤0.1 97.8 %, 소멸 F1 0.915 |
 | (참고) 같은 모델 ep3 | surface_v1 | Surface valid 전체 954장 | mIoU 0.605, 비율 MAE 0.022, 소멸 F1 0.908 |
-| A안 obstacle (Medium) | polygon_v1 | Polygon valid, 장애물 | |
+| A안 obstacle (Medium) **최종** (10 ep) | polygon_v1 | **Polygon valid 전체 1,566장**, 장애물 11종 | mIoU **0.736** (car 0.909 · person 0.873 · truck_bus 0.797 · two_wheeler 0.777 · pole 0.769 · bollard 0.752 · movable_signage 0.648 · potted_plant 0.637 · barricade 0.614 · other_moving 0.584) |
+| (공정 비교) 같은 모델 | polygon_v1 | teacher 비교와 같은 150장, 프롬프트 9종 | mIoU **0.701** vs SAM 3 0.518 · GDINO+SAM2 0.373 |
 | B안 unified (Medium) | unified_v1 (GT + SAM 3 보강) | 양쪽 | |
 
 ### 3-1. zero-shot vs 파인튜닝 (면, Surface valid 동일 150장)

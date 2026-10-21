@@ -134,7 +134,7 @@ def build(out: Path) -> Path:
             ("모델", "RF-DETR-Seg Medium 파인튜닝 (RTX 3090)", f"보도면 mIoU {n['surf_miou']} · 장애물 mIoU {n['obs_miou']}"),
             ("핵심 지표", "유효보행폭 비율(병목, 통과 여유)", f"MAE {n['ratio_mae']} · ±0.1 이내 {n['within']}"),
             ("판정", "소멸·협소·공사·단차·보차 혼용", f"보도 소멸 F1 {n['vanish_f1']}"),
-            ("teacher", "SAM 3 vs Grounding DINO zero-shot 비교", f"비율 MAE {n['sam3_mae150']} → {n['mae150']}"),
+            ("teacher", "SAM 3 vs Grounding DINO zero-shot 비교", f"비율 MAE {n['sam3_mae150']} → {n['mae150']}, 장애물 mIoU 0.52 → 0.70"),
             ("실사진", "Mapillary(CC BY-SA) 명동·을지로 + OSM 링크", f"명동 {n['links']}링크 · {n['grades']}"),
             ("서비스", "Streamlit 대시보드 · 이미지 업로드 추론", "HF Spaces 배포")]
     tbl = s3.shapes.add_table(len(rows), 3, Cm(3.5), Cm(13.6), Cm(30.5), Cm(17)).table
