@@ -4,7 +4,7 @@
 2026 AI 라이프 솔루션 챌린지(산업통상부·KEIT) 출품작 · 아이디어 챌린지 후보작 *RoadPush* 구현.
 
 - 1차 사용자: 지자체·도로관리기관 보도 담당자 — 어디부터 단속·정비할지 우선순위
-- 대상 지역: 서울 도심(중구 명동·을지로, 종로) — 공개 거리 사진(Mapillary, CC BY-SA)의 실제 촬영 위치
+- 대상 지역: 서울 도심(중구·종로) **466개 링크 · 28.4 km** — 공개 거리 사진(Mapillary, CC BY-SA) 7,559장(360° 변환 포함)의 실제 촬영 위치
 - **웹앱(테스트 URL)**: https://huggingface.co/spaces/YunSangNam/roadpush — 서버 없는 정적 웹앱, 사진 분석은 브라우저 안에서 실행 *(제출 전까지 비공개)*
 
 진행 기록 [PROGRESS.md](PROGRESS.md) · 결과 수치 [docs/results.md](docs/results.md) · 계획 [PLAN.md](PLAN.md)

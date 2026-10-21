@@ -70,14 +70,39 @@ def _round_geom(g):
     return {**g, "coordinates": r(g["coordinates"])}
 
 
-def build_session(src: Path, out: Path, width: int) -> int:
+def nearby_names(gj: dict, base_links: Path, max_m: float = 50.0) -> dict[str, str]:
+    """이름 없는 링크(OSM 보행로·골목) → 가장 가까운 이름 있는 링크의 도로명 + ' 인근'. 담당자가 위치를 알아보게."""
+    import geopandas as gpd
+    from shapely.geometry import shape
+
+    named = gpd.read_file(base_links)
+    named = named[named["name"].fillna("") != ""].to_crs(5179)
+    tree = named.sindex
+    out = {}
+    for f in gj["features"]:
+        p = f["properties"]
+        if p.get("name"):
+            continue
+        g = gpd.GeoSeries([shape(f["geometry"])], crs=4326).to_crs(5179).iloc[0]
+        idx = tree.query(g.buffer(max_m))
+        if len(idx):
+            cand = named.iloc[idx]
+            near = cand.iloc[cand.distance(g).argmin()]
+            out[p["link_id"]] = f"{near['name']} 인근"
+    return out
+
+
+def build_session(src: Path, out: Path, width: int, base_links: Path | None = None) -> int:
     from PIL import Image
 
     out.mkdir(parents=True, exist_ok=True)
     gj = json.loads((src / "links_scored.geojson").read_text())
+    fill = nearby_names(gj, base_links) if base_links else {}
     feats = []
     for f in gj["features"]:
         p = {k: f["properties"].get(k) for k in KEEP}
+        if not p.get("name") and p["link_id"] in fill:
+            p["name"] = fill[p["link_id"]]
         feats.append({"type": "Feature", "properties": p, "geometry": _round_geom(f["geometry"])})
     (out / "links.geojson").write_text(json.dumps({"type": "FeatureCollection", "features": feats}, ensure_ascii=False))
 
@@ -116,7 +141,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--out", type=Path, default=ROOT / "dist" / "static")
     ap.add_argument("--session", action="append", required=True, help="<app/data 세션 id>:<제목>")
     ap.add_argument("--data", type=Path, default=ROOT / "app" / "data")
-    ap.add_argument("--links", type=Path, default=ROOT / "data/links/jung_gu.geojson")
+    ap.add_argument("--links", type=Path, default=ROOT / "data/links/downtown.geojson",
+                    help="배경 링크 + 이름 없는 링크의 인근 도로명 조회용")
     ap.add_argument("--onnx", nargs="+", type=Path, required=True)
     ap.add_argument("--meta", type=Path, default=ROOT / "outputs/onnx/meta.json")
     ap.add_argument("--samples", nargs="*", type=Path, default=[])
@@ -136,7 +162,7 @@ def main(argv: list[str] | None = None) -> None:
     sessions = []
     for spec in args.session:
         sid, _, title = spec.partition(":")
-        n = build_session(args.data / sid, data / sid, args.width)
+        n = build_session(args.data / sid, data / sid, args.width, args.links)
         sessions.append({"id": sid, "title": title or sid, "attribution": (args.data / sid / "attribution.json").exists(),
                          "simulation": sid.startswith("sim_")})
         print(f"  {sid}: overlay {n}장")
