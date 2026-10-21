@@ -32,7 +32,7 @@ done
 
 SAMPLES=$(ls outputs/mly_junggu_2025/frames | sed -n '85p;200p;400p' | sed 's|^|outputs/mly_junggu_2025/frames/|' | tr '\n' ' ')
 SESS=()
-[ -f app/data/mly_downtown/links_scored.geojson ] && SESS+=(--session "mly_downtown:서울 도심(중구·종로) 전 연도 통합")
+if [ -f app/data/mly_downtown/links_scored.geojson ]; then SESS+=(--session "mly_downtown:서울 도심(중구·종로) 전 연도 통합"); fi
 SESS+=(--session "mly_junggu_2025:명동 2025" --session "mly_junggu_2017:을지로 2017")
 $R scripts/build_static.py --out dist/static "${SESS[@]}" \
    --onnx "${ONNX[@]}" --samples $SAMPLES
