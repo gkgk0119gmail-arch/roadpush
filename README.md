@@ -85,7 +85,7 @@ $E python -m roadpush.convert_aihub_to_coco --xml-dir data/raw/aihub/extracted/s
 $E python -m roadpush.train --dataset data/coco/surface_v1 --run seg_m_surface_v1          # tmux 안에서
 $E python -m roadpush.mapillary --area downtown --out outputs/mly_downtown_all             # .mapillary_token
 bash scripts/redeploy_static.sh             # ONNX 내보내기 → 정적 사이트 → HF Space
-$E pytest                                   # 41 tests
+$E pytest                                   # 40 tests
 ```
 
 ## 출처·라이선스
