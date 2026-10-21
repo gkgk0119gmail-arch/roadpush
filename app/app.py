@@ -244,6 +244,9 @@ with st.sidebar:
     st.caption("점수 = 100×[0.4·(1−P10 비율) + 0.3·비율<θ 프레임 비중 + 0.3·유형 가중]\n\n"
                "등급: 안전 <30 · 주의 30~60 · 위험 ≥60")
 
+if session and session.startswith("sim_"):
+    st.warning("시뮬레이션 세션: AI Hub 인도보행 영상(학습 미사용 폴더)을 신촌 링크 위 가상 보행 경로에 배치한 결과입니다. "
+               "영상 분석은 실제이나 위치는 실제 촬영 위치가 아닙니다.", icon="⚠️")
 tabs = st.tabs(["지도", "링크 상세", "전·후 비교", "이미지 업로드 추론"])
 if session is None:
     for t in tabs[:3]:
