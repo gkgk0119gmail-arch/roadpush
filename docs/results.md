@@ -49,9 +49,26 @@ Polygon valid 40장, GT 면적 ≥ 1500 px² 객체를 '있음'으로.
 
 | 모델 | 데이터 | 평가 | 결과 |
 |---|---|---|---|
-| A안 surface (Medium) | surface_v1 | Surface valid, 면 | |
+| A안 surface (Medium) ep3 (중간) | surface_v1 | Surface valid 150장(teacher 비교와 동일), 면 | mIoU 0.606, 비율 MAE **0.011** |
 | A안 obstacle (Medium) | polygon_v1 | Polygon valid, 장애물 | |
 | B안 unified (Medium) | unified_v1 (GT + SAM 3 보강) | 양쪽 | |
+
+### 3-1. zero-shot vs 파인튜닝 (면, Surface valid 동일 150장)
+
+| 지표 | SAM 3 zero-shot | GDINO+SAM2 zero-shot | RF-DETR-Seg M 파인튜닝 (ep3 중간) |
+|---|---|---|---|
+| 면 mIoU | 0.239 | 0.207 | **0.606** |
+| sidewalk IoU | 0.658 | 0.522 | **0.867** |
+| roadway / alley IoU | 0.108 / 0.000 | 0.072 / 0.000 | **0.780 / 0.786** |
+| braille / manhole_grating / tree_zone | 0.371 / 0.662 / 0.000 | 0.257 / 0.505 / 0.053 | **0.834 / 0.870 / 0.815** |
+| stairs / repair_zone | **0.285** / 0.000 | **0.376** / 0.000 | 0.088 / 0.000 |
+| **유효보행폭 비율 MAE** | 0.088 | 0.193 | **0.011** |
+| 비율 오차 ≤ 0.1 | 91.4 % | 80.8 % | **98.1 %** |
+| 보도 유무 정확도 | 84.7 % | 73.3 % | **96.7 %** |
+| 보도 소멸 F1 | 0.736 | 0.565 | **0.944** |
+
+- 파인튜닝으로 비율 오차 1/8. 경량 모델(35.7M)이 848M 파운데이션 모델을 도메인에서 크게 앞섬.
+- 약점: stairs(학습 187개)·repair_zone(72개) 희소 → 이 둘은 zero-shot 이 오히려 나음. 계단·공사 태그는 VLM 확인과 SAM 3 보강으로 보완 예정.
 
 ## 4. 절대폭 보조 지표 (GT 마스크, Surface valid 239장)
 
