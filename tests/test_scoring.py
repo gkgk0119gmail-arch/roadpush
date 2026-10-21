@@ -99,3 +99,13 @@ def test_short_vanish_gap_is_crossing():
     real = [_f(0.95)] * 5 + [van] * 4 + [_f(0.95)] * 3               # 4프레임 연속 → 소멸
     assert score_link("v", real).primary_type == "vanish"
     assert score_link("x", [van] * 2) is None                          # 전부 짧은 공백
+
+
+def test_pedestrians_do_not_reduce_width():
+    sw = _sidewalk()
+    ppl = np.zeros((H, W), dtype=bool); ppl[120:199, 120:220] = True; sw[120:199, 120:220] = False
+    fa = analyze_frame({"sidewalk": [sw], "person": [ppl]}, (H, W))
+    assert fa.n_obstacles_on_sidewalk == 0 and fa.ratio == pytest.approx(1.0)
+    stall = ppl.copy()
+    fa2 = analyze_frame({"sidewalk": [sw], "other_fixed": [stall]}, (H, W))
+    assert fa2.n_obstacles_on_sidewalk == 1 and fa2.ratio < 0.7

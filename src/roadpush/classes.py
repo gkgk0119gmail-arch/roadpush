@@ -39,6 +39,10 @@ CLASS_TO_ID: dict[str, int] = {c: i + 1 for i, c in enumerate(CLASSES)}  # COCO 
 # 보도 폭 계산 시 "걸을 수 있는 면"으로 합칠 클래스
 WALKABLE_SURFACES: frozenset[str] = frozenset({"sidewalk", "braille_guide_blocks", "manhole_grating"})
 
+# 일시적으로 지나가는 것(보행자·유모차·휠체어·반려동물)은 지자체 조치 대상이 아니므로 유효폭에서 빼지 않는다.
+# 검출은 하되 혼잡도 참고용으로만 센다.
+TRANSIENT_CLASSES: frozenset[str] = frozenset({"person", "other_moving"})
+
 # 면(surface) 라벨이지만 보도 위에서 통행을 막는 것 → 장애물처럼 유효폭에서 뺀다
 BLOCKING_SURFACES: frozenset[str] = frozenset({"tree_zone"})
 

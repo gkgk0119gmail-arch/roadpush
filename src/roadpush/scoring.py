@@ -22,7 +22,7 @@ from typing import Iterable, Mapping, Sequence
 
 import numpy as np
 
-from .classes import BLOCKING_SURFACES, OBSTACLE_CLASSES, WALKABLE_SURFACES
+from .classes import BLOCKING_SURFACES, OBSTACLE_CLASSES, TRANSIENT_CLASSES, WALKABLE_SURFACES
 from .width_ratio import FrameResult, Mask, frame_ratio, obstacles_on_sidewalk
 
 TYPE_WEIGHTS = {"vanish": 1.0, "repair": 0.8, "stairs": 0.6}
@@ -81,7 +81,12 @@ def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, i
     repair/stairs 태그: 하단 절반에서 해당 면적이 (보도 ∪ 해당 면) 대비 tag_min_frac 이상.
     """
     walk = _union((m for c in WALKABLE_SURFACES for m in class_masks.get(c, ())), shape)
-    instances = [m for c in (*OBSTACLE_CLASSES, *BLOCKING_SURFACES) for m in class_masks.get(c, ())]
+    # 보도 위 보행자 등 이동 객체 아래는 보도로 간주(세그는 가려진 보도를 못 칠함 → 구멍이 폭을 깎는 것 방지)
+    transient = [m for c in TRANSIENT_CLASSES for m in class_masks.get(c, ())]
+    if transient:
+        walk = walk | obstacles_on_sidewalk(walk, transient)
+    blockers = [c for c in (*OBSTACLE_CLASSES, *BLOCKING_SURFACES) if c not in TRANSIENT_CLASSES]
+    instances = [m for c in blockers for m in class_masks.get(c, ())]
     obstacle = obstacles_on_sidewalk(walk, instances)
     n_on = sum(1 for m in instances if (m & obstacle).any())
     fr: FrameResult = frame_ratio(walk, obstacle, cam_h=cam_h)
