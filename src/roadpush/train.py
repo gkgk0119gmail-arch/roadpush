@@ -42,6 +42,9 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--patience", type=int, default=5)
+    ap.add_argument("--eval-interval", type=int, default=2)
+    ap.add_argument("--full-res-eval", action="store_true",
+                    help="학습 중 검증을 원본 해상도로 (1080p에서 매우 느림). 기본은 마스크 헤드 해상도 → 최종 지표는 evaluate.py")
     args = ap.parse_args(argv)
 
     out = Path("checkpoints") / args.run
@@ -65,6 +68,9 @@ def main(argv: list[str] | None = None) -> None:
         checkpoint_interval=1,
         resume=args.resume,
         tensorboard=True,
+        eval_interval=args.eval_interval,
+        eval_masks_head_resolution=not args.full_res_eval,
+        eval_max_dets=100,
         progress_bar="tqdm",
     )
     print("완료:", out)
