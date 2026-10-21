@@ -122,7 +122,7 @@ def build_image_index(img_root: Path) -> dict[str, Path]:
     index: dict[str, Path] = {}
     dup = 0
     for p in img_root.rglob("*"):
-        if p.suffix.lower() in IMG_EXTS:
+        if p.suffix.lower() in IMG_EXTS and "MASK" not in p.parts:   # MASK/*.png 는 라벨 렌더링
             key = p.name
             if key in index:
                 dup += 1
