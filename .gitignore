@@ -30,3 +30,5 @@ __pycache__/
 .DS_Store
 .vscode/
 ~$*
+.hf_token
+.aihub_key
