@@ -28,7 +28,8 @@ def merge_split(sources: list[tuple[Path, Path | None]], split: str, out_dir: Pa
                 pseudo_score: float, min_area: float) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     images, anns = [], []
-    stats = {"gt": 0, "pseudo": 0, "pseudo_dropped": 0}
+    stats = {"gt": 0, "pseudo": 0, "pseudo_dropped": 0, "dup_skipped": 0}
+    seen_files: set[str] = set()   # 여러 소스에 같은 이미지가 있으면 먼저 나온 것만
     for src_dir, pseudo in sources:
         gt = _load(src_dir / split / "_annotations.coco.json")
         gname = {c["id"]: c["name"] for c in gt["categories"]}
@@ -47,6 +48,10 @@ def merge_split(sources: list[tuple[Path, Path | None]], split: str, out_dir: Pa
         for a in gt["annotations"]:
             gt_by.setdefault(a["image_id"], []).append(a)
         for im in gt["images"]:
+            if im["file_name"] in seen_files:
+                stats["dup_skipped"] += 1
+                continue
+            seen_files.add(im["file_name"])
             new_id = len(images) + 1
             images.append({**im, "id": new_id})
             dst = out_dir / im["file_name"]

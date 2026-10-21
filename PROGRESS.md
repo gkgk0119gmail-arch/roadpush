@@ -2,6 +2,15 @@
 
 자율 개발 루프(10분 체크) 기록. 최신이 위.
 
+## 2026-10-21 (D0) 16시 20분: 보고서 PPT 자동화, 희소 클래스 보강 데이터
+
+- `scripts/build_report.py`: 공식 PPT 양식 4p에 문안·그림·평가 JSON 수치 자동 삽입 + PDF. Pretendard 폰트 로컬 설치(OFL)로 미리보기 확인. 최종 수치 나오면 재실행.
+- `make_figures.py`: 파이프라인 도식 추가(SAM 3=학습 teacher, Qwen3-VL=메모 사전 생성 구분).
+- 앱 '방법·출처' 탭.
+- 장애물 희소 클래스: 받은 Polygon 1~10(1,270폴더) 전체에 barricade 3,519·other_moving 1,744·potted_plant 6,470·movable_signage 14,143 (Polygon_1 대비 3~7배).
+  → `--select-classes` 로 희소 클래스 포함 이미지만 뽑아 **polygon_v2** (train 21,869 / valid 2,477, 폴더 분할 유지, v1 valid 와 누수 0). merge_coco 파일명 중복 제거.
+- **다음(내일)**: 야간 대기열 종료 후 polygon_v2 로 장애물 모델 v2 학습(~3h), 비교 평가는 polygon_v1 valid 로 고정.
+
 ## 2026-10-21 (D0) 15시 50분: 비율 v2(병목), 보차 혼용, 야간 대기열
 
 - 사용자 지적: 명동처럼 보도블록이지만 차가 다니는 곳 → **보차 혼용** 판정 추가: 보행 공간 안 차량 프레임 비중 + OSM 도로 유형(residential 등은 15%, 그 외 30%) → 링크 `space_type`(분리 보도/보차 혼용/보도 없음), 단절 유형 'shared', VLM 확인 질문·조치 메뉴.

@@ -50,8 +50,23 @@ def test_merge_coco_fills_missing(tmp_path):
         "categories": [{"id": 99, "name": "car"}]}))
     tr = merge_split([(src, ps)], "train", tmp_path / "out" / "train", 0.5, 100)
     va = merge_split([(src, ps)], "valid", tmp_path / "out" / "valid", 0.5, 100)
-    assert tr == {"images": 1, "gt": 1, "pseudo": 1, "pseudo_dropped": 1}
+    assert tr == {"images": 1, "gt": 1, "pseudo": 1, "pseudo_dropped": 1, "dup_skipped": 0}
     assert va["pseudo"] == 0
     d = json.loads((tmp_path / "out" / "train" / "_annotations.coco.json").read_text())
     names = {c["id"]: c["name"] for c in d["categories"]}
     assert sorted(names[a["category_id"]] for a in d["annotations"]) == ["car", "sidewalk"]
+
+
+def test_merge_coco_dedupes(tmp_path):
+    import json
+    from roadpush.merge_coco import merge_split
+    srcs = []
+    for name in ("a", "b"):
+        d = tmp_path / name / "train"; d.mkdir(parents=True)
+        (d / "x.jpg").write_bytes(b"x")
+        (d / "_annotations.coco.json").write_text(json.dumps({
+            "images": [{"id": 1, "file_name": "x.jpg", "width": 10, "height": 10}], "annotations": [],
+            "categories": [{"id": 5, "name": "sidewalk"}]}))
+        srcs.append((tmp_path / name, None))
+    st = merge_split(srcs, "train", tmp_path / "out" / "train", 0.5, 0)
+    assert st["images"] == 1 and st["dup_skipped"] == 1

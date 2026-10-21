@@ -194,6 +194,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--link", choices=["symlink", "copy", "none"], default="symlink")
     ap.add_argument("--max-images", type=int, default=0, help="디버그용 상한(0=전체)")
     ap.add_argument("--inspect", action="store_true", help="라벨/속성 분포만 출력하고 종료")
+    ap.add_argument("--select-classes", default="",
+                    help="쉼표 목록 중 하나라도 포함한 이미지만 남김 (희소 클래스 보강용)")
     args = ap.parse_args(argv)
 
     xml_files = sorted(args.xml_dir.rglob("*.xml"))
@@ -209,6 +211,10 @@ def main(argv: list[str] | None = None) -> None:
             records = records[: args.max_images]
             break
     print(f"이미지 레코드 {len(records)}개")
+    if args.select_classes:
+        want = set(args.select_classes.split(","))
+        records = [r for r in records if any(sh.cls in want for sh in r.shapes)]
+        print(f"선택 클래스 포함 이미지 {len(records)}개 ({','.join(sorted(want))})")
 
     if args.inspect:
         cls_cnt: Counter = Counter()
