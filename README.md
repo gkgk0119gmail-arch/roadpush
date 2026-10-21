@@ -9,6 +9,34 @@
 - 계획: [PLAN.md](PLAN.md) · 진행 기록: [PROGRESS.md](PROGRESS.md) · 결과 수치: [docs/results.md](docs/results.md)
 - 보고서 초안: [docs/report_draft.md](docs/report_draft.md) · 데모 영상 스토리보드: [docs/demo_script.md](docs/demo_script.md)
 
+## 📸 진행 현황 갤러리
+
+그림은 학습·분석이 진행되면 자동으로 다시 그려져 약 90분마다 푸시된다(`scripts/autopush.sh`). 날짜별 상세 기록은 [PROGRESS.md](PROGRESS.md).
+
+**명동 2025 실사진 분석 미리보기** — 보도(초록)·차도(회색)·골목(갈색)·장애물(빨강 윤곽), 오른쪽에 유효보행폭 비율
+
+![명동 미리보기](docs/media/preview_mly_junggu_2025.gif)
+
+**전체 구조** — 분할 모델이 폭을 재고, 규칙이 점수를 매기고, 멀티모달 LLM이 확인·설명한다
+
+![파이프라인](docs/figures/fig_pipeline.png)
+
+**학습 곡선** — 모델별 검증 마스크 mAP
+
+![학습 곡선](docs/figures/fig_training.png)
+
+**zero-shot vs 파인튜닝** — 같은 검증 150장
+
+![성능 비교](docs/figures/fig_compare.png)
+
+**도로 링크별 단절 위험도 (명동 2025)**
+
+<img src="docs/figures/fig_map.png" width="560">
+
+**대표 프레임** — 정상 보도 / 폭 협소 / 보도 소멸
+
+![대표 프레임](docs/figures/fig_frames.png)
+
 ## 주요 결과 (AI Hub 검증셋, 촬영 폴더 단위 분리)
 
 | | SAM 3 zero-shot | Grounding DINO+SAM 2 | **RoadPush (파인튜닝)** |

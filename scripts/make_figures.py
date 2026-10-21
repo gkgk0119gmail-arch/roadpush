@@ -154,6 +154,45 @@ def fig_pipeline(out: Path) -> None:
     plt.close(fig)
 
 
+# 모델(엔티티)별 고정 색 — 참조 팔레트 categorical 1~4 순서, 모델이 늘어도 기존 색 유지
+RUN_COLOR = {"seg_m_surface_v1": ("#2a78d6", "보도면 모델"), "seg_m_obstacle_v1": ("#eb6834", "장애물 모델"),
+             "seg_m_unified_v1": ("#1baf7a", "통합 모델(SAM 3 보강)"), "seg_m_obstacle_v2": ("#eda100", "장애물 v2(희소 보강)")}
+
+
+def fig_training(out: Path) -> None:
+    """학습 곡선: 검증 마스크 mAP(EMA, 마스크 헤드 해상도) vs epoch. 단일 축, 모델별 고정색 + 직접 라벨."""
+    import pandas as pd
+
+    fig, ax = plt.subplots(figsize=(9, 4.2))
+    drawn = 0
+    for run, (color, label) in RUN_COLOR.items():
+        f = ROOT / "checkpoints" / run / "metrics.csv"
+        if not f.exists():
+            continue
+        d = pd.read_csv(f)
+        col = "val/ema_segm_mAP_50_95"
+        if col not in d:
+            continue
+        v = d.dropna(subset=[col]).groupby("epoch")[col].max()
+        if v.empty:
+            continue
+        ax.plot(v.index + 1, v.values, color=color, lw=2, marker="o", ms=6, mec=SURFACE, mew=2, label=label)
+        ax.annotate(f"{label} {v.values[-1]:.3f}", (v.index[-1] + 1, v.values[-1]), xytext=(6, 0),
+                    textcoords="offset points", va="center", fontsize=10, color=INK)
+        drawn += 1
+    ax.set_xlabel("epoch")
+    ax.set_ylabel("검증 마스크 mAP")
+    ax.yaxis.grid(True, color=GRID, lw=0.8)
+    ax.set_axisbelow(True)
+    ax.set_title("학습 곡선 (검증 마스크 mAP@50:95, 마스크 헤드 해상도 — 최종 지표는 evaluate.py)", loc="left", fontsize=11)
+    if drawn >= 2:
+        ax.legend(frameon=False, loc="lower right", fontsize=9)
+    ax.set_xlim(left=0.5, right=ax.get_xlim()[1] + 2.5)
+    fig.tight_layout()
+    fig.savefig(out / "fig_training.png", dpi=180, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--session", type=Path, default=ROOT / "outputs/mly_junggu_2025")
@@ -164,6 +203,7 @@ def main(argv: list[str] | None = None) -> None:
     _font()
     fig_compare(args.out)
     fig_pipeline(args.out)
+    fig_training(args.out)
     if (args.session / "links_scored.geojson").exists():
         fig_map(args.session, args.links, args.out)
         fig_frames(args.session, args.out)
