@@ -193,6 +193,103 @@ def fig_training(out: Path) -> None:
     plt.close(fig)
 
 
+def push_frames(session: Path):
+    """'차도로 밀려나는' 프레임: 보도 소멸(바닥은 보임) · 보차 혼용 · 비율<0.3. → (frame→유형), 링크별 비중."""
+    import csv
+    from collections import defaultdict
+
+    rs = {r["frame"]: r for r in map(json.loads, open(session / "frame_results.jsonl", encoding="utf-8"))}
+    kind = {}
+    for f, r in rs.items():
+        t = r.get("tags", [])
+        if "noview" in t:
+            continue
+        if "vanish" in t:
+            kind[f] = "보도 없음 → 차도·골목으로"
+        elif "shared" in t and r["ratio"] < 0.6:
+            kind[f] = "차량이 보행 공간 점유"
+        elif r["sidewalk_present"] and r["ratio"] < 0.3:
+            kind[f] = "장애물로 막혀 차도로"
+    by = defaultdict(list)
+    with open(session / "frames_linked.csv", encoding="utf-8") as fh:
+        for r in csv.DictReader(fh):
+            if r["link_id"] and r["frame"] in rs and "noview" not in rs[r["frame"]].get("tags", []):
+                by[r["link_id"]].append(r["frame"])
+    frac = {l: sum(f in kind for f in fs) / len(fs) for l, fs in by.items() if len(fs) >= 3}
+    return kind, by, frac, rs
+
+
+def fig_push(session: Path, links: Path, out: Path, min_frac: float = 0.3) -> dict:
+    """RoadPush 핵심 그림: 보행자가 차도로 밀려나는 링크 지도 + 대표 프레임 갤러리."""
+    import geopandas as gpd
+    import numpy as np
+    from PIL import Image
+
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from build_static import nearby_names
+
+    kind, by, frac, rs = push_frames(session)
+    g = gpd.read_file(session / "links_scored.geojson")
+    fill = nearby_names(json.loads((session / "links_scored.geojson").read_text()), links)
+    g["name"] = [n if n else fill.get(l, "") for n, l in zip(g["name"].fillna(""), g.link_id)]
+    g["push"] = g.link_id.map(frac).fillna(0)
+    push = g[g.push >= min_frac].sort_values(["push", "score"], ascending=False)
+    gm, base = g.to_crs(5179), gpd.read_file(links).to_crs(5179)
+    b = gm.total_bounds
+    fig, ax = plt.subplots(figsize=(10, 8))
+    base.cx[b[0] - 150:b[2] + 150, b[1] - 150:b[3] + 150].plot(ax=ax, color="#d9d7cf", linewidth=0.6)
+    gm[gm.push < min_frac].plot(ax=ax, color="#9c9a92", linewidth=2.2, label="측정 링크 (밀려남 적음)")
+    gm[gm.push >= min_frac].plot(ax=ax, color=STATUS["위험"], linewidth=4.5,
+                                 label=f"차도로 밀려나는 링크 ({len(push)}개 · {push.length_m.sum() / 1000:.1f} km)")
+    ax.set_axis_off()
+    ax.set_xlim(b[0] - 150, b[2] + 150); ax.set_ylim(b[1] - 150, b[3] + 150)
+    ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0), frameon=False, fontsize=11)
+    fig.suptitle("걷는 사람이 차도로 밀려나는 구간 — 서울 도심(중구·종로)", x=0.02, ha="left", fontsize=14)
+    fig.text(0.02, 0.02, "링크 프레임 중 30% 이상이 보도 소멸·차량 점유·심한 협소(비율<0.3) · 지도 © OpenStreetMap", color=INK2, fontsize=8)
+    fig.savefig(out / "fig_push_map.png", dpi=180, bbox_inches="tight")
+    plt.close(fig)
+
+    def good_view(f) -> bool:
+        """대표 사진 조건: 바닥(골목·차도·보도)이 보이고, 장애물(빨강 오버레이)이 화면을 덮지 않음."""
+        c = rs[f].get("counts", {})
+        if not any(c.get(k, 0) for k in ("alley", "roadway", "sidewalk")):
+            return False
+        a = np.asarray(Image.open(session / "overlay" / f).convert("RGB")).astype(int)
+        red = ((a[..., 0] > 160) & (a[..., 0] - a[..., 1] > 60) & (a[..., 0] - a[..., 2] > 25)).mean()   # 반투명 섞인 분홍 포함
+        return red < 0.25   # 유리창 등 어두운 부분은 빨강으로 안 잡혀 보수적으로
+
+    # 갤러리: 유형별로 고르게, 서로 다른 도로명
+    picks, seen = [], set()
+    order = ["보도 없음 → 차도·골목으로", "차량이 보행 공간 점유", "장애물로 막혀 차도로"]
+    for want in order * 4:
+        for _, L in push.iterrows():
+            nm = L["name"] or L.link_id
+            if nm in seen:
+                continue
+            fs = [f for f in by[L.link_id] if kind.get(f) == want and (session / "overlay" / f).exists()
+                  and good_view(f)]
+            if fs:
+                f = sorted(fs, key=lambda x: rs[x]["ratio"])[len(fs) // 2]
+                picks.append((L, f, want)); seen.add(nm)
+                break
+        if len(picks) >= 8:
+            break
+    if picks:
+        fig, axes = plt.subplots(2, 4, figsize=(20, 8.6))
+        for ax, (L, f, want) in zip(axes.ravel(), picks):
+            ax.imshow(Image.open(session / "overlay" / f))
+            ax.set_title(f"{L['name'] or '이름 없음'} · {want}\n링크 점수 {L.score:.0f} ({L.grade}) · 밀려남 {L.push:.0%}",
+                         loc="left", fontsize=11)
+            ax.set_axis_off()
+        for ax in axes.ravel()[len(picks):]:
+            ax.set_axis_off()
+        fig.tight_layout()
+        fig.savefig(out / "fig_push_gallery.png", dpi=150, bbox_inches="tight")
+        plt.close(fig)
+    return {"links": int(len(push)), "km": round(float(push.length_m.sum() / 1000), 1), "measured": int(len(g))}
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--session", type=Path, default=ROOT / "outputs/mly_junggu_2025")
@@ -207,6 +304,9 @@ def main(argv: list[str] | None = None) -> None:
     if (args.session / "links_scored.geojson").exists():
         fig_map(args.session, args.links, args.out)
         fig_frames(args.session, args.out)
+    dt = ROOT / "outputs/mly_downtown"
+    if (dt / "links_scored.geojson").exists():
+        print("push", fig_push(dt, ROOT / "data/links/downtown.geojson", args.out))
     print("→", sorted(p.name for p in args.out.glob("*.png")))
 
 
