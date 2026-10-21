@@ -92,10 +92,18 @@ def _hav(a, b) -> float:
                                        math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2))
 
 
-def walking_sequences(images: list[dict], min_len: int = 10, speed=(0.5, 2.5), year: int | None = None):
+PANO_TYPES = ("spherical", "equirectangular")
+# 파노라마 중앙과 compass_angle 사이 경험적 보정(도심 Ricoh THETA 시퀀스 육안 확인: 진행 방향 = 중앙 −90°,
+# 촬영자 등 너머로 길이 이어지는 쪽). 촬영자는 보행자(TRANSIENT)로 인식돼 폭 계산에서 보도로 채워진다.
+PANO_YAW_OFFSET = -90.0
+
+
+def walking_sequences(images: list[dict], min_len: int = 10, speed=(0.5, 2.5), year: int | None = None,
+                      cameras: tuple = ("perspective", None)):
+    """cameras: 받을 camera_type. 360° 를 쓰려면 PANO_TYPES 와 'fisheye'(광각 단렌즈) 포함."""
     seqs = defaultdict(list)
     for x in images:
-        if x.get("camera_type") not in ("perspective", None):
+        if x.get("camera_type") not in cameras:
             continue
         if year and datetime.fromtimestamp(x["captured_at"] / 1000, timezone.utc).year != year:
             continue
@@ -113,6 +121,36 @@ def walking_sequences(images: list[dict], min_len: int = 10, speed=(0.5, 2.5), y
     return out
 
 
+def _bearing(a, b) -> float:
+    lo1, la1, lo2, la2 = map(math.radians, (a[0], a[1], b[0], b[1]))
+    y = math.sin(lo2 - lo1) * math.cos(la2)
+    x = math.cos(la1) * math.sin(la2) - math.sin(la1) * math.cos(la2) * math.cos(lo2 - lo1)
+    return (math.degrees(math.atan2(y, x)) + 360) % 360
+
+
+def pano_to_perspective(pano, yaw_deg: float, pitch_deg: float = -25.0, fov_deg: float = 90.0,
+                        out_w: int = 1280, out_h: int = 960):
+    """등장방형(equirectangular) 파노라마 → 핀홀 시점. yaw 는 파노라마 중앙(=compass_angle) 기준 상대각(시계방향 +)."""
+    import cv2
+    import numpy as np
+
+    H, W = pano.shape[:2]
+    f = (out_w / 2) / math.tan(math.radians(fov_deg) / 2)
+    xs, ys = np.meshgrid(np.arange(out_w) - out_w / 2 + 0.5, np.arange(out_h) - out_h / 2 + 0.5)
+    v = np.stack([xs, ys, np.full_like(xs, f)], -1)          # 카메라 좌표: x 오른쪽, y 아래, z 앞
+    v /= np.linalg.norm(v, axis=-1, keepdims=True)
+    p, yv = -math.radians(pitch_deg), math.radians(yaw_deg)   # 이미지 y 가 아래(+)라 피치 부호 반전
+    # 피치(위가 +): x 축 회전, 요: y 축 회전
+    Rx = np.array([[1, 0, 0], [0, math.cos(p), math.sin(p)], [0, -math.sin(p), math.cos(p)]])
+    Ry = np.array([[math.cos(yv), 0, math.sin(yv)], [0, 1, 0], [-math.sin(yv), 0, math.cos(yv)]])
+    d = v @ (Ry @ Rx).T
+    lon = np.arctan2(d[..., 0], d[..., 2])                    # 앞=0, 오른쪽=+
+    lat = np.arcsin(np.clip(-d[..., 1], -1, 1))               # 위=+
+    mx = ((lon / (2 * math.pi) + 0.5) * W).astype(np.float32) % W
+    my = ((0.5 - lat / math.pi) * H).astype(np.float32)
+    return cv2.remap(pano, mx, my, cv2.INTER_LINEAR, borderMode=cv2.BORDER_WRAP)
+
+
 def download(seqs: dict[str, list[dict]], out: Path, size: int = 2048, min_gap_m: float = 1.0,
              workers: int = 4) -> int:
     """시퀀스 순서대로 저장. 거의 같은 위치(min_gap_m 미만) 연속 사진은 건너뜀(정지 구간). 이미 받은 파일은 건너뜀."""
@@ -123,11 +161,16 @@ def download(seqs: dict[str, list[dict]], out: Path, size: int = 2048, min_gap_m
     plan = []   # (name, image meta, sequence id) — 번호는 결정적이라 중단 후 재실행해도 같은 파일명
     for sid, xs in seqs.items():
         last = None
+        kept = []
         for x in xs:
             c = x["computed_geometry"]["coordinates"]
             if last is not None and _hav(last, c) < min_gap_m:
                 continue
             last = c
+            kept.append(x)
+        for i, x in enumerate(kept):   # 진행 방위: 다음(마지막이면 이전) 사진 쪽
+            a, b = (kept[i], kept[i + 1]) if i + 1 < len(kept) else (kept[i - 1], kept[i]) if i else (x, x)
+            x["_bearing"] = _bearing(a["computed_geometry"]["coordinates"], b["computed_geometry"]["coordinates"])
             plan.append((f"frame_{len(plan) + 1:06d}.jpg", x, sid))
 
     def fetch(item) -> bool:
@@ -141,7 +184,15 @@ def download(seqs: dict[str, list[dict]], out: Path, size: int = 2048, min_gap_m
                 if not url:
                     return False
                 tmp = dst.with_suffix(".part")
-                tmp.write_bytes(urllib.request.urlopen(url, timeout=60).read())
+                data = urllib.request.urlopen(url, timeout=60).read()
+                if x.get("camera_type") in PANO_TYPES:   # 360° → 진행 방향 핀홀 시점
+                    import cv2
+                    import numpy as np
+                    pano = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
+                    yaw = (x["_bearing"] - (x.get("compass_angle") or 0) + PANO_YAW_OFFSET + 540) % 360 - 180
+                    ok, enc = cv2.imencode(".jpg", pano_to_perspective(pano, yaw), [cv2.IMWRITE_JPEG_QUALITY, 90])
+                    data = enc.tobytes()
+                tmp.write_bytes(data)
                 tmp.replace(dst)
                 return True
             except Exception:
@@ -178,10 +229,12 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--survey", action="store_true", help="연도별 보행 시퀀스 통계만")
     ap.add_argument("--max-seqs", type=int, default=0)
+    ap.add_argument("--pano", action="store_true", help="360°(spherical) 보행 시퀀스만 받아 진행 방향 시점으로 변환")
     args = ap.parse_args(argv)
 
     imgs = list_images(AREAS[args.area])
-    seqs = walking_sequences(imgs, year=args.year)
+    cams = PANO_TYPES if args.pano else ("perspective", None)
+    seqs = walking_sequences(imgs, year=args.year, cameras=cams)
     by_year = defaultdict(int)
     for xs in seqs.values():
         by_year[datetime.fromtimestamp(xs[0]["captured_at"] / 1000, timezone.utc).year] += len(xs)
