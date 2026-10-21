@@ -111,11 +111,14 @@ def walking_sequences(images: list[dict], min_len: int = 10, speed=(0.5, 2.5), y
     return out
 
 
-def download(seqs: dict[str, list[dict]], out: Path, size: int = 2048, min_gap_m: float = 1.0) -> int:
-    """시퀀스 순서대로 저장. 거의 같은 위치(min_gap_m 미만) 연속 사진은 건너뜀(정지 구간)."""
+def download(seqs: dict[str, list[dict]], out: Path, size: int = 2048, min_gap_m: float = 1.0,
+             workers: int = 8) -> int:
+    """시퀀스 순서대로 저장. 거의 같은 위치(min_gap_m 미만) 연속 사진은 건너뜀(정지 구간). 이미 받은 파일은 건너뜀."""
+    from concurrent.futures import ThreadPoolExecutor
+
     fdir = out / "frames"
     fdir.mkdir(parents=True, exist_ok=True)
-    rows, attrib, k, t0 = [], [], 0, None
+    plan = []   # (name, image meta, sequence id) — 번호는 결정적이라 중단 후 재실행해도 같은 파일명
     for sid, xs in seqs.items():
         last = None
         for x in xs:
@@ -123,29 +126,42 @@ def download(seqs: dict[str, list[dict]], out: Path, size: int = 2048, min_gap_m
             if last is not None and _hav(last, c) < min_gap_m:
                 continue
             last = c
-            meta = _get(x["id"], fields=f"thumb_{size}_url")
-            url = meta.get(f"thumb_{size}_url")
-            if not url:
-                continue
-            k += 1
-            name = f"frame_{k:06d}.jpg"
-            dst = fdir / name
-            if not dst.exists():
-                dst.write_bytes(urllib.request.urlopen(url, timeout=60).read())
-            ts = x["captured_at"] / 1000
-            t0 = ts if t0 is None else t0
-            creator = (x.get("creator") or {}).get("username", "")
-            rows.append([name, f"{ts - t0:.2f}", datetime.fromtimestamp(ts, timezone.utc).isoformat(),
-                         f"{c[1]:.7f}", f"{c[0]:.7f}", 1, x["id"], sid, creator])
-            attrib.append({"frame": name, "image_id": x["id"], "creator": creator,
-                           "url": f"https://www.mapillary.com/app/?pKey={x['id']}"})
+            plan.append((f"frame_{len(plan) + 1:06d}.jpg", x, sid))
+
+    def fetch(item) -> bool:
+        name, x, _ = item
+        dst = fdir / name
+        if dst.exists() and dst.stat().st_size > 0:
+            return True
+        url = _get(x["id"], fields=f"thumb_{size}_url").get(f"thumb_{size}_url")
+        if not url:
+            return False
+        tmp = dst.with_suffix(".part")
+        tmp.write_bytes(urllib.request.urlopen(url, timeout=60).read())
+        tmp.replace(dst)
+        return True
+
+    with ThreadPoolExecutor(workers) as ex:
+        ok = list(ex.map(fetch, plan))
+    rows, attrib, t0 = [], [], None
+    for (name, x, sid), good in zip(plan, ok):
+        if not good:
+            continue
+        c = x["computed_geometry"]["coordinates"]
+        ts = x["captured_at"] / 1000
+        t0 = ts if t0 is None else t0
+        creator = (x.get("creator") or {}).get("username", "")
+        rows.append([name, f"{ts - t0:.2f}", datetime.fromtimestamp(ts, timezone.utc).isoformat(),
+                     f"{c[1]:.7f}", f"{c[0]:.7f}", 1, x["id"], sid, creator])
+        attrib.append({"frame": name, "image_id": x["id"], "creator": creator,
+                       "url": f"https://www.mapillary.com/app/?pKey={x['id']}"})
     with open(out / "frames.csv", "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["frame", "t_sec", "utc", "lat", "lon", "gps_ok", "source", "sequence", "creator"])
         w.writerows(rows)
     (out / "attribution.json").write_text(json.dumps(
         {"license": "CC BY-SA 4.0", "source": "Mapillary", "images": attrib}, ensure_ascii=False, indent=1))
-    return k
+    return len(rows)
 
 
 def main(argv: list[str] | None = None) -> None:
