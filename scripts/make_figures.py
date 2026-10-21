@@ -117,6 +117,43 @@ def fig_frames(session: Path, out: Path) -> None:
     plt.close(fig)
 
 
+def fig_pipeline(out: Path) -> None:
+    """파이프라인 도식: 주 흐름(가로) + teacher(점선, 학습 시에만)."""
+    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
+
+    steps = [("보행 촬영 영상\n+ GPS", "폰·공개 거리사진"),
+             ("RF-DETR-Seg", "보도면 9종 · 장애물 11종\n픽셀 분할 (CPU 가능)"),
+             ("유효보행폭 비율", "스캔라인 병목\n보행자 제외·통과 여유"),
+             ("링크 위험도", "0~100 · 4+1 단절 유형\n보차 혼용 판정"),
+             ("담당자 대시보드", "지도 · 우선순위 · 전후 비교\nQwen3-VL 점검 메모(사전 생성)")]
+    fig, ax = plt.subplots(figsize=(16, 4.2))
+    ax.set_xlim(0, 16); ax.set_ylim(0, 4.2); ax.set_axis_off()
+    w, h, y = 2.6, 1.5, 2.3
+    xs = [0.2 + i * 3.18 for i in range(len(steps))]
+    for i, (x, (t, sub)) in enumerate(zip(xs, steps)):
+        core = i in (1, 2)
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.15",
+                                    fc=EMPH if core else "#eef3fb", ec=EMPH, lw=1.5))
+        ax.text(x + w / 2, y + h * 0.68, t, ha="center", va="center", fontsize=14,
+                color="white" if core else INK, weight="bold")
+        ax.text(x + w / 2, y + h * 0.28, sub, ha="center", va="center", fontsize=10,
+                color="white" if core else INK2)
+        if i < len(steps) - 1:
+            ax.add_patch(FancyArrowPatch((x + w + 0.03, y + h / 2), (xs[i + 1] - 0.03, y + h / 2),
+                                         arrowstyle="-|>", mutation_scale=18, color=INK2, lw=1.5))
+    # teacher (학습 단계)
+    tx = xs[1]
+    ax.add_patch(FancyBboxPatch((tx - 0.1, 0.25), w + 0.2, 1.15, boxstyle="round,pad=0.02,rounding_size=0.15",
+                                fc=SURFACE, ec=INK2, lw=1.2, ls="--"))
+    ax.text(tx + w / 2, 0.98, "SAM 3 (teacher, 학습 단계)", ha="center", fontsize=11, color=INK, weight="bold")
+    ax.text(tx + w / 2, 0.55, "결측 라벨 보강 · zero-shot 비교\n배포물 미포함", ha="center", va="center", fontsize=9, color=INK2)
+    ax.add_patch(FancyArrowPatch((tx + w / 2, 1.42), (tx + w / 2, y - 0.03), arrowstyle="-|>", mutation_scale=14,
+                                 color=INK2, lw=1.2, ls="--"))
+    ax.text(xs[0] + w / 2, 0.82, "학습 데이터\nAI Hub 인도보행 영상\n보도면 9.5천 · 장애물 1.5만 장", ha="center", fontsize=10, color=INK2, va="center")
+    fig.savefig(out / "fig_pipeline.png", dpi=200, bbox_inches="tight")
+    plt.close(fig)
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--session", type=Path, default=ROOT / "outputs/mly_junggu_2025")
@@ -126,6 +163,7 @@ def main(argv: list[str] | None = None) -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     _font()
     fig_compare(args.out)
+    fig_pipeline(args.out)
     if (args.session / "links_scored.geojson").exists():
         fig_map(args.session, args.links, args.out)
         fig_frames(args.session, args.out)
