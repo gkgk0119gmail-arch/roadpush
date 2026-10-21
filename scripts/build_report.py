@@ -106,7 +106,7 @@ def build(out: Path) -> Path:
          "지자체 담당자에게 조치 우선순위를 제시하는 AI", 20, False, INK2)])
     stat(s1, 3.5, 21.0, n["ratio_mae"], "유효보행폭 비율 오차(MAE)\nAI Hub 검증 " + n["n_surf"] + "장")
     stat(s1, 16.5, 21.0, n["x_better"], "zero-shot SAM 3 대비\n비율 오차 감소")
-    stat(s1, 3.5, 28.0, "0.6초", "장당 CPU 추론(2스레드)\nGPU 없이 지자체 PC에서")
+    stat(s1, 3.5, 28.0, "서버 0대", "브라우저 안 AI 추론(ONNX)\nGPU 없이 지자체 PC에서")
     stat(s1, 16.5, 28.0, n["links"] + "개", f"명동 실측 링크 ({n['grades']})\n보차 혼용 {n['shared']}개 식별")
     picture(s1, FIG / "fig_map.png", 36.0, 5.5, h=31.0)
 
@@ -136,7 +136,7 @@ def build(out: Path) -> Path:
             ("판정", "소멸·협소·공사·단차·보차 혼용", f"보도 소멸 F1 {n['vanish_f1']}"),
             ("teacher", "SAM 3 vs Grounding DINO zero-shot 비교", f"비율 MAE {n['sam3_mae150']} → {n['mae150']}, 장애물 mIoU 0.52 → 0.70"),
             ("실사진", "Mapillary(CC BY-SA) 명동·을지로 + OSM 링크", f"명동 {n['links']}링크 · {n['grades']}"),
-            ("서비스", "Streamlit 대시보드 · 이미지 업로드 추론", "HF Spaces 배포")]
+            ("서비스", "정적 웹앱(지도·상세·사진 분석) · 브라우저 안 ONNX 추론", "HF Space 무료 · 서버 없음")]
     tbl = s3.shapes.add_table(len(rows), 3, Cm(3.5), Cm(13.6), Cm(30.5), Cm(17)).table
     for c, wcm in enumerate((5.0, 13.5, 12.0)):
         tbl.columns[c].width = Cm(wcm)
@@ -163,7 +163,8 @@ def build(out: Path) -> Path:
          "마스크 틈 메움(통과 여유).", 21, False, INK),
         ("• 원근: 픽셀 폭을 m로 바꾸기 어려움 → 제안자 답변대로 비율이 기본, 1.2 m는 카메라 높이 가정 보조 지표.", 21, False, INK),
         ("• LLM 환각: 열린 질문에 사진과 무관한 장애물 나열 → 닫힌 질문 + 분할 결과 교차검증한 사실만 메모에 사용.", 21, False, INK),
-        ("• 데이터 접근: 지도앱 로드뷰는 약관상 사용 불가 → Mapillary(CC BY-SA) 보행 시퀀스 + OSM 링크.", 21, False, INK)])
+        ("• 데이터 접근: 지도앱 로드뷰는 약관상 사용 불가 → Mapillary(CC BY-SA) 보행 시퀀스 + OSM 링크.", 21, False, INK),
+        ("• 배포: 무료 서버 호스팅 중단 → 모델을 ONNX로 바꿔 사용자 브라우저에서 추론하는 서버 없는 웹앱(사진도 외부 전송 없음).", 21, False, INK)])
     text(s4, 34.5, 6.0, 30, 30, [
         ("7. 기대효과", 26, True, INK),
         ("• 지자체: 민원·순찰 의존 점검 → '촬영 → 자동 리포트'. 링크별 우선순위로 단속·정비 예산 배분 근거.", 21, False, INK),
