@@ -94,12 +94,15 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--folders", type=int, default=12)
     ap.add_argument("--max-frames", type=int, default=60, help="폴더당 최대 프레임")
     ap.add_argument("--speed", type=float, default=1.2)
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--seed", type=int, default=0, help="폴더(장면) 선택 시드")
+    ap.add_argument("--route-seed", type=int, default=None,
+                    help="경로 시드(기본=seed). 같은 값이면 같은 링크 경로 → 전·후 비교용 두 세션")
     ap.add_argument("--holdout-coco", type=Path, default=None,
                     help="이 COCO(valid)에 모든 이미지가 든 폴더만 사용 → 학습에 안 쓴 장면으로 데모")
     args = ap.parse_args(argv)
 
     rng = random.Random(args.seed)
+    route_rng = random.Random(args.seed if args.route_seed is None else args.route_seed)
     links = gpd.read_file(args.links)
     g = build_graph(links)
     to_m = Transformer.from_crs("EPSG:4326", "EPSG:5179", always_xy=True)
@@ -113,11 +116,16 @@ def main(argv: list[str] | None = None) -> None:
     folders = rng.sample(folders, min(args.folders, len(folders)))
     fdir = args.out / "frames"
     fdir.mkdir(parents=True, exist_ok=True)
-    rows, used, k = [], set(), 0
-    for folder in folders:
+    # 경로를 먼저 고정 길이로 뽑아 두면 폴더가 달라도 route_seed 가 같을 때 같은 링크를 지난다
+    used: set[int] = set()
+    routes = []
+    for _ in folders:
+        r = random_route(links, g, args.max_frames * args.speed, route_rng, used)
+        used.update(i for i, _ in r)
+        routes.append(r)
+    rows, k = [], 0
+    for folder, route in zip(folders, routes):
         imgs = sorted(folder.glob("*.jpg"))[: args.max_frames]
-        route = random_route(links, g, len(imgs) * args.speed, rng, used)
-        used.update(i for i, _ in route)
         xy = np.asarray(route_line(links, route).coords)
         line_m = LineString(np.c_[to_m.transform(xy[:, 0], xy[:, 1])])
         for j, img in enumerate(imgs):
