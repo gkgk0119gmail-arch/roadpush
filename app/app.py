@@ -32,7 +32,7 @@ LINKS = Path(os.environ.get("ROADPUSH_LINKS", DATA / "links.geojson"))
 CKPT = os.environ.get("ROADPUSH_CKPT", str(ROOT / "app" / "model" / "roadpush_seg.pth")).split(",")
 SIZE = os.environ.get("ROADPUSH_SIZE", "medium")
 
-GRADE_COLOR = {"위험": "#d7263d", "주의": "#f4a259", "안전": "#2a9d8f"}
+GRADE_COLOR = {"위험": "#d03b3b", "주의": "#fab219", "안전": "#0ca30c"}   # 상태색(dataviz 참조 팔레트), 툴팁에 등급 라벨 병기
 CENTER = (37.5640, 126.9880)   # 데이터가 있으면 fit_bounds 로 덮어씀
 
 st.set_page_config(page_title="RoadPush 보행공간 단절 위험도", page_icon="🚶", layout="wide")
