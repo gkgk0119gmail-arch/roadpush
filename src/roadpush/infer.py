@@ -106,7 +106,10 @@ def run_frames(pred: Predictor, run_dir: Path, overlay_every: int = 10) -> Path:
             rec = {"frame": fp.name, **fa.to_dict(), "counts": {k: len(v) for k, v in cm.items()}}
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
             if overlay_every and i % overlay_every == 0:
-                Image.fromarray(render_overlay(img, cm, fa)).save(ov_dir / fp.name, quality=85)
+                ov = Image.fromarray(render_overlay(img, cm, fa))
+                if ov.width > 960:    # 대시보드·배포 용량용 축소
+                    ov = ov.resize((960, round(ov.height * 960 / ov.width)))
+                ov.save(ov_dir / fp.name, quality=80)
             if i % 50 == 0:
                 print(f"  {i}/{len(frames)} {fp.name} ratio={fa.ratio:.2f} tags={fa.tags}")
     return out
