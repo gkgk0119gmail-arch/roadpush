@@ -121,7 +121,8 @@ function spark(fr) {
 function renderDetail(id) {
   const ft = state.links.features.find((x) => x.properties.link_id === id);
   if (!ft) return;
-  const p = ft.properties, f = F(), fr = state.frames[id] || [], m = state.memos[id];
+  // 측정 불가(바닥 안 보임) 프레임은 점수 계산에서 빠지므로 화면에서도 뺀다
+  const p = ft.properties, f = F(), fr = (state.frames[id] || []).filter((d) => !(d.tags || "").includes("noview")), m = state.memos[id];
   const thumbs = fr.slice().sort((a, b) => a.r - b.r).slice(0, 6);
   $("#detail").innerHTML = `
     <h2>${esc(p.name || "이름 없음")} <span class="badge ${p[f.g]}">${p[f.g]}</span></h2>
