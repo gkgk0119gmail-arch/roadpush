@@ -12,7 +12,8 @@
 보조 지표: 절대 통과 가능 폭(m, width_ratio.metric_width) 이 법정 유효폭 1.2 m 미만인 프레임 비중.
 점수에는 넣지 않는다(카메라 높이 가정 의존, 제안자 답변대로 비율이 기본).
 
-보도가 안 보이는 프레임은 r=0, tag=vanish.
+보도가 안 보이는 프레임은 r=0, tag=vanish. 단 연속 min_vanish_run 프레임 미만의 짧은 공백은
+횡단보도·골목 입구 통과로 보고 링크 계산에서 제외한다(1 fps·1.2 m/s 기준 3프레임 ≈ 3.6 m).
 """
 from __future__ import annotations
 
@@ -129,9 +130,25 @@ def grade_of(score: float) -> str:
     return GRADES[-1][1]
 
 
+def drop_short_gaps(frames: Sequence[FrameAnalysis], min_run: int) -> list[FrameAnalysis]:
+    """보도 미검출 프레임이 min_run 미만으로 연속된 구간(횡단 등)을 뺀다. frames 는 시간순."""
+    if min_run <= 1:
+        return list(frames)
+    keep, i, n = [], 0, len(frames)
+    while i < n:
+        j = i
+        while j < n and frames[j].sidewalk_present == frames[i].sidewalk_present:
+            j += 1
+        if frames[i].sidewalk_present or (j - i) >= min_run:
+            keep.extend(frames[i:j])
+        i = j
+    return keep
+
+
 def score_link(link_id: str, frames: Sequence[FrameAnalysis], profile: Profile = PEDESTRIAN,
-               type_min_frac: float = 0.2) -> LinkScore | None:
-    """링크 하나의 점수. 프레임이 없으면 None."""
+               type_min_frac: float = 0.2, min_vanish_run: int = 3) -> LinkScore | None:
+    """링크 하나의 점수(frames 는 시간순). 프레임이 없으면 None."""
+    frames = drop_short_gaps(frames, min_vanish_run)
     if not frames:
         return None
     r = np.array([f.ratio if f.sidewalk_present else 0.0 for f in frames], dtype=float)

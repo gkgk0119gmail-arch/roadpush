@@ -89,3 +89,13 @@ def test_legal_width_aux():
     ls = score_link("x", frames)
     assert ls.frac_below_legal == pytest.approx(0.75) and ls.median_free_width_m == pytest.approx(1.0)
     assert score_link("y", [_f(0.9)] * 3).frac_below_legal is None
+
+
+def test_short_vanish_gap_is_crossing():
+    van = _f(0.0, ["vanish"], False)
+    crossing = [_f(0.95)] * 5 + [van] * 2 + [_f(0.95)] * 5           # 2프레임 공백 → 횡단
+    s = score_link("c", crossing)
+    assert s.primary_type == "none" and s.n_frames == 10
+    real = [_f(0.95)] * 5 + [van] * 4 + [_f(0.95)] * 3               # 4프레임 연속 → 소멸
+    assert score_link("v", real).primary_type == "vanish"
+    assert score_link("x", [van] * 2) is None                          # 전부 짧은 공백
