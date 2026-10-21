@@ -2,6 +2,17 @@
 
 자율 개발 루프(10분 체크) 기록. 최신이 위.
 
+## 2026-10-21 (D0) 13시 40분: 멀티모달 LLM·teacher 비교 층 추가 (사용자 제안)
+
+구조: **세그(폭 측정) → 규칙(점수) → VLM(확인·설명·조치 제안)**, teacher 는 SAM 3 vs Grounding DINO+SAM 2.1 비교.
+- 캐시에 Qwen3-VL-2B/8B, grounding-dino-base/tiny, sam2.1-hiera-large 가 이미 있음 → roadpush env(transformers 5.20)로 실행.
+- Qwen3-VL-2B 열린 질문: 버스정류장으로 좁아진 보도·골목 사진 둘 다 "차량·이륜차·입간판·적치물·공사"를 그대로 나열 → **환각**(프롬프트 예시 복창).
+- 대응: 닫힌 예/아니오 질문 10개(`CHECKS`), 세그 결과와 교차검증(둘 다 '있음'만 confirmed), 측정값을 근거로 준 담당자 메모(`cause/action/priority`).
+- `vlm bench` (Polygon valid 40장, 2B): truck_bus 0.975, two_wheeler 0.925, person 0.875, car 0.775(오경보 0.6) → 8B 비교 예정.
+- `gdino_label.py`: 동일 프롬프트·동일 COCO 출력. 첫 확인에서 "construction site on sidewalk" 과검출 경향.
+- teacher 비교 실험(tmux `teach`): 각 150장, 장애물=Polygon valid, 면=Surface valid → `outputs/teachers/eval_*.json`. **결과로 B안 teacher 결정 후 의사 라벨링 재개.**
+- 앱 링크 상세에 VLM 메모·교차검증 표시.
+
 ## 2026-10-21 (D0) 13시 15분: Polygon 확인, A/B 두 갈래
 
 - Polygon_1: 300 XML / 14,838장, 장애물 11종 전부 매핑(미매핑 0), **보도면 라벨 0**. → Surface(면만)·Polygon(장애물만) 라벨이 서로 배타적.
