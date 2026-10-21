@@ -117,3 +117,12 @@ def test_metric_width_obstacle_and_edge_cut():
     assert mw is not None and mw.width_m == pytest.approx(1.3 * 4.0, rel=0.03)
     wider = _trapezoid(a=8.0)         # 남는 행이 min_rows 미만 → None
     assert frame_ratio(wider, np.zeros_like(wider)).metric is None
+
+
+def test_row_ignored_when_corridor_mostly_obstacle():
+    S = np.zeros(200, dtype=bool); S[50:60] = True       # 멀리서 조각난 보도 10px … 너무 적어서 기본 min_sidewalk_px 로도 걸러짐
+    O = np.zeros(200, dtype=bool); O[60:150] = True      # 붙어 있는 차도 위 트럭 90px
+    assert row_ratio(S, O, min_sidewalk_px=5) is None    # 보도 비중 10% < 25% → 판단 제외
+    S2 = np.zeros(200, dtype=bool); S2[20:120] = True; S2[90:110] = False
+    O2 = np.zeros(200, dtype=bool); O2[90:110] = True    # 보도 한가운데 장애물(보도 비중 80%) → 정상 계산
+    assert row_ratio(S2, O2).ratio == pytest.approx(0.7)

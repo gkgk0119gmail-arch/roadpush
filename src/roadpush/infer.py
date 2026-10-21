@@ -27,6 +27,7 @@ PALETTE = {
     "repair_zone": (245, 130, 48), "manhole_grating": (70, 240, 240), "tree_zone": (128, 0, 0),
 }
 OBSTACLE_RGB = (230, 25, 75)
+TRANSIENT_RGB = (190, 160, 255)   # 보행자 등 이동 객체: 장애물로 세지 않으므로 다른 색
 
 
 class Predictor:
@@ -75,13 +76,15 @@ def render_overlay(image_rgb: np.ndarray, class_masks: dict[str, list[np.ndarray
 
     out = image_rgb.copy()
     layer = out.copy()
+    from .classes import TRANSIENT_CLASSES
+
     for cls, ms in class_masks.items():
-        color = PALETTE.get(cls, OBSTACLE_RGB)
+        color = PALETTE.get(cls, TRANSIENT_RGB if cls in TRANSIENT_CLASSES else OBSTACLE_RGB)
         for m in ms:
             layer[m] = color
     out = cv2.addWeighted(layer, alpha, out, 1 - alpha, 0)
     for cls, ms in class_masks.items():
-        if cls in PALETTE:
+        if cls in PALETTE or cls in TRANSIENT_CLASSES:
             continue
         for m in ms:
             cnts, _ = cv2.findContours(m.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

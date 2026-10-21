@@ -118,7 +118,9 @@ def obstacles_on_sidewalk(sidewalk: Mask, instances: Iterable[Mask], dilate_px: 
 # ---------------------------------------------------------------- 핵심
 
 def row_ratio(sidewalk_row: np.ndarray, obstacle_row: np.ndarray, y: int = 0,
-              min_sidewalk_px: int = 40, gap_px: int = 0) -> RowResult | None:
+              min_sidewalk_px: int = 40, gap_px: int = 0, min_walk_share: float = 0.25) -> RowResult | None:
+    """min_walk_share: corridor 중 보도 픽셀 비중이 이보다 작으면 None — 멀리서 조각난 보도 옆
+    차도 위 차량이 통째로 corridor 가 되는 오판 방지(명동 실사진). 실제로 보도를 막은 장애물은 가까운 행에서 잡힌다."""
     S = np.asarray(sidewalk_row, dtype=bool)
     O = np.asarray(obstacle_row, dtype=bool)
     if gap_px > 0 and O.any():   # 장애물 좌우 통과 여유 + 마스크 경계 틈 메우기
@@ -130,7 +132,7 @@ def row_ratio(sidewalk_row: np.ndarray, obstacle_row: np.ndarray, y: int = 0,
         key = (n_s, b - a)
         if key > best_key:
             best_key, best = key, (a, b)
-    if best is None or best_key[0] < min_sidewalk_px:
+    if best is None or best_key[0] < min_sidewalk_px or best_key[0] < min_walk_share * best_key[1]:
         return None
     a, b = best
     free_runs = runs(S[a:b] & ~O[a:b])
