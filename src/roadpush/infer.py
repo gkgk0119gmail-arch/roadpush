@@ -30,23 +30,30 @@ OBSTACLE_RGB = (230, 25, 75)
 
 
 class Predictor:
-    def __init__(self, ckpt: str | Path, size: str = "medium", threshold: float = 0.4):
-        self.model = load_model(size, str(ckpt))
-        self.names: list[str] = list(self.model.class_names)
-        self.threshold = threshold
-        try:
-            self.model.optimize_for_inference()
-        except Exception:   # CPU/구버전에서 실패해도 추론은 가능
-            pass
+    """체크포인트 하나(통합 모델) 또는 여러 개(보도면 모델 + 장애물 모델)를 받아 결과를 합친다."""
 
-    def masks(self, image) -> tuple[dict[str, list[np.ndarray]], tuple[int, int], object]:
-        det = self.model.predict(image, threshold=self.threshold)
-        h, w = det.mask.shape[1:] if det.mask is not None and len(det) else _shape_of(image)
+    def __init__(self, ckpt: str | Path | list, size: str = "medium", threshold: float = 0.4):
+        ckpts = ckpt if isinstance(ckpt, (list, tuple)) else [ckpt]
+        self.models = [load_model(size, str(c)) for c in ckpts]
+        self.threshold = threshold
+        for m in self.models:
+            try:
+                m.optimize_for_inference()
+            except Exception:   # CPU/구버전에서 실패해도 추론은 가능
+                pass
+
+    def masks(self, image) -> tuple[dict[str, list[np.ndarray]], tuple[int, int], list]:
         out: dict[str, list[np.ndarray]] = defaultdict(list)
-        if det.mask is not None:
-            for cid, m in zip(det.class_id, det.mask):
-                out[self.names[int(cid)]].append(m.astype(bool))
-        return dict(out), (h, w), det
+        dets, shape = [], None
+        for model in self.models:
+            det = model.predict(image, threshold=self.threshold)
+            names = list(model.class_names)
+            if det.mask is not None and len(det):
+                shape = det.mask.shape[1:]
+                for cid, m in zip(det.class_id, det.mask):
+                    out[names[int(cid)]].append(m.astype(bool))
+            dets.append(det)
+        return dict(out), shape or _shape_of(image), dets
 
     def analyze(self, image) -> tuple[FrameAnalysis, dict[str, list[np.ndarray]], object]:
         cm, shape, det = self.masks(image)
@@ -107,7 +114,7 @@ def run_frames(pred: Predictor, run_dir: Path, overlay_every: int = 10) -> Path:
 
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--ckpt", required=True)
+    ap.add_argument("--ckpt", required=True, nargs="+", help="하나(통합) 또는 여러 개(보도면+장애물)")
     ap.add_argument("--size", default="medium")
     ap.add_argument("--run", required=True, type=Path, help="frames/ 가 있는 출력 폴더")
     ap.add_argument("--threshold", type=float, default=0.4)

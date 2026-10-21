@@ -94,7 +94,7 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--gt", required=True, type=Path, help="_annotations.coco.json 이 있는 폴더")
     g = ap.add_mutually_exclusive_group(required=True)
-    g.add_argument("--ckpt")
+    g.add_argument("--ckpt", nargs="+")
     g.add_argument("--pred-coco", type=Path)
     ap.add_argument("--size", default="medium")
     ap.add_argument("--threshold", type=float, default=0.4)
@@ -131,7 +131,7 @@ def main(argv: list[str] | None = None) -> None:
         if k % 50 == 0:
             print(f"  {k + 1}/{len(ims)}", flush=True)
     rep = acc.report()
-    rep["source"] = args.ckpt or str(args.pred_coco)
+    rep["source"] = " + ".join(args.ckpt) if args.ckpt else str(args.pred_coco)
     print(json.dumps(rep, ensure_ascii=False, indent=2))
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

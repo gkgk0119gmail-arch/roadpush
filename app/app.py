@@ -28,7 +28,7 @@ from roadpush.scoring import TYPE_LABEL_KO  # noqa: E402
 
 DATA = Path(os.environ.get("ROADPUSH_DATA", ROOT / "app" / "data"))
 LINKS = Path(os.environ.get("ROADPUSH_LINKS", DATA / "links.geojson"))
-CKPT = os.environ.get("ROADPUSH_CKPT", str(ROOT / "app" / "model" / "roadpush_seg.pth"))
+CKPT = os.environ.get("ROADPUSH_CKPT", str(ROOT / "app" / "model" / "roadpush_seg.pth")).split(",")
 SIZE = os.environ.get("ROADPUSH_SIZE", "medium")
 
 GRADE_COLOR = {"위험": "#d7263d", "주의": "#f4a259", "안전": "#2a9d8f"}
@@ -204,7 +204,7 @@ def predictor():
 
 def page_upload():
     st.write("보행 시점 사진을 올리면 보도·장애물을 분할하고 유효보행폭 비율을 계산합니다.")
-    if not Path(CKPT).exists():
+    if not all(Path(c).exists() for c in CKPT):
         st.warning(f"모델 파일이 없습니다: {CKPT}")
         return
     f = st.file_uploader("이미지", type=["jpg", "jpeg", "png"])

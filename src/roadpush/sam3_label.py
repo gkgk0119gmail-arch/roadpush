@@ -31,6 +31,8 @@ PROMPTS: dict[str, list[str]] = {
     "bike_lane": ["bike lane"],
     "stairs": ["stairs"],
     "repair_zone": ["construction site on sidewalk"],
+    "manhole_grating": ["manhole cover", "drain grate"],
+    "tree_zone": ["tree pit"],
     "car": ["car"],
     "truck_bus": ["truck", "bus"],
     "two_wheeler": ["motorcycle", "bicycle", "scooter"],
@@ -86,12 +88,21 @@ class Sam3Teacher:
         return out
 
 
+def _dump(out: Path, images: list, anns: list) -> None:
+    cats = [{"id": CLASS_TO_ID[c], "name": c, "supercategory": "roadpush"} for c in CLASSES]
+    out.parent.mkdir(parents=True, exist_ok=True)
+    tmp = out.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"images": images, "annotations": anns, "categories": cats}))
+    tmp.replace(out)
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--images", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--threshold", type=float, default=0.5)
     ap.add_argument("--max-images", type=int, default=0)
+    ap.add_argument("--classes", default="", help="쉼표 구분 클래스만 라벨링 (예: 결측 보강용 장애물만)")
     ap.add_argument("--coco-ref", type=Path, default=None,
                     help="이미지 id/파일명을 맞출 COCO json (기본: <images>/_annotations.coco.json 있으면 사용)")
     args = ap.parse_args(argv)
@@ -105,13 +116,14 @@ def main(argv: list[str] | None = None) -> None:
     if args.max_images:
         ims = ims[: args.max_images]
 
+    prompts = {c: PROMPTS[c] for c in args.classes.split(",")} if args.classes else PROMPTS
     teacher = Sam3Teacher(args.threshold)
     images, anns, aid, t0 = [], [], 1, time.time()
     for k, im in enumerate(ims):
         img = cv2.cvtColor(cv2.imread(str(args.images / im["file_name"])), cv2.COLOR_BGR2RGB)
         h, w = img.shape[:2]
         images.append({"id": im["id"], "file_name": im["file_name"], "width": w, "height": h})
-        for cls, items in teacher.segment(img).items():
+        for cls, items in teacher.segment(img, prompts).items():
             for mask, score in items:
                 for poly in mask_to_polygons(mask):
                     xs, ys = poly[0::2], poly[1::2]
@@ -123,9 +135,9 @@ def main(argv: list[str] | None = None) -> None:
                     aid += 1
         if k % 20 == 0:
             print(f"  {k + 1}/{len(ims)} anns={len(anns)} {(time.time() - t0) / (k + 1):.2f}s/img", flush=True)
-    cats = [{"id": CLASS_TO_ID[c], "name": c, "supercategory": "roadpush"} for c in CLASSES]
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps({"images": images, "annotations": anns, "categories": cats}))
+        if (k + 1) % 500 == 0:
+            _dump(args.out, images, anns)    # 중간 저장 (장시간 작업 중단 대비)
+    _dump(args.out, images, anns)
     print(f"완료: images={len(images)} anns={len(anns)} → {args.out}")
 
 
