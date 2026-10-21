@@ -75,7 +75,7 @@ def cols_for(profile: str) -> tuple[str, str, str]:
 
 def link_map(gdf: gpd.GeoDataFrame, score_col: str, grade_col: str, type_col: str,
              color_fn=None, tooltip_extra=None, height: int = 560):
-    m = folium.Map(location=CENTER, zoom_start=16, tiles="cartodbpositron", control_scale=True)
+    m = folium.Map(location=CENTER, zoom_start=16, tiles="OpenStreetMap", control_scale=True)
     base = load_base_links()
     if base is not None:
         folium.GeoJson(base[["geometry"]], style_function=lambda _: {"color": "#bbbbbb", "weight": 1.5,
