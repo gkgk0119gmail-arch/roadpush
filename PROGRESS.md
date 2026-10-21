@@ -2,6 +2,15 @@
 
 자율 개발 루프(10분 체크) 기록. 최신이 위.
 
+## 2026-10-21 (D0) 14시 40분: 대상 지역 → 명동·을지로 (Mapillary 실사진)
+
+- 사용자 제안: 공개된 실제 촬영 영상+GPS 활용, 지역은 신촌 고집 안 함.
+- 지도앱 로드뷰(네이버·카카오·구글)는 약관상 다운로드·AI 활용 금지 → 제외. KartaView 는 서울 커버리지 사실상 0.
+- **Mapillary** (CC BY-SA 4.0, 사용자 개발자 토큰 `.mapillary_token`): 서울 16곳 조사(`outputs/mapillary/survey.py`) → 신촌 보행 사진 0, **명동·을지로(중구)** 최다.
+- `mapillary.py`: perspective 카메라 + 시퀀스 이동속도 중앙값 0.5~2.5 m/s(보행)만, 연도별 세션, `attribution.json` 출처 기록. 중구 보행 사진 2017년 1,315 / 2025년 1,172 → **2017 vs 2025 비교** 세션.
+- `links.py --area jung_gu`, `scripts/run_mly_demo.sh`, 앱에 CC BY-SA 출처 표시. 지도 타일 OSM 으로(CartoDB 키 필요).
+- 다운로드 tmux `mly` 진행 중.
+
 ## 2026-10-21 (D0) 14시 20분: 실데이터 첫 E2E, 파인튜닝 효과 확인
 
 - teacher 비교 결과 **SAM 3 채택** (장애물 mIoU 0.42 vs GDINO 0.31, GDINO 는 볼라드·입간판·화분 0). `docs/results.md`.
