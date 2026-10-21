@@ -134,6 +134,18 @@ def seg_flags(counts: dict[str, int]) -> dict[str, bool]:
     return {k: any(counts.get(c, 0) > 0 for c in cls) for k, cls in SEG_KEYS.items()}
 
 
+# 단절 유형별 사실 규칙 + 담당자 조치 메뉴 (일반론 "보도를 정비" 방지)
+TYPE_GUIDE = {
+    "vanish": ("보도가 없는 구간이다. '보도 위'라는 표현을 쓰지 말고 '보행자가 차량과 같은 공간을 지난다'고 쓴다.",
+               "보행자 우선도로 지정·속도 저감(30 km/h)·노면 보행로 표시·보도 신설 검토"),
+    "narrow": ("보도는 있으나 장애물로 통과 폭이 좁아진 구간이다. 확인된 요소를 원인으로 쓴다.",
+               "불법 주정차 단속(차량·이륜차)·적치물·입간판 정비·볼라드/시설물 재배치"),
+    "repair": ("공사·파손으로 통행이 막힌 구간이다.", "공사 구간 임시 보행로 확보·안내 표지·파손 보수"),
+    "stairs": ("계단·턱으로 휠체어·유모차 통행이 막힌 구간이다.", "경사로·턱 낮춤 설치"),
+    "none": ("측정상 큰 단절은 없다.", "정기 모니터링"),
+}
+
+
 def explain_prompt(link: dict, frames: list[dict]) -> str:
     lines = [f"- 프레임 {i + 1}: 유효보행폭 비율 {f['ratio']:.2f}, 보도 감지 {'예' if f['sidewalk_present'] else '아니오'}, "
              f"보도 위 장애물 {f.get('n_obstacles_on_sidewalk', 0)}개, 확인된 요소: {', '.join(f['confirmed']) or '없음'}"
@@ -143,7 +155,11 @@ def explain_prompt(link: dict, frames: list[dict]) -> str:
         f"링크 점수 {link['score']:.0f}/100 ({link['grade']}), 대표 단절 유형: {link['primary_type_ko']}, "
         f"하위 10% 유효보행폭 비율 {link['p10_ratio']:.2f}, 비율 0.5 미만 프레임 비중 {link['frac_below'] * 100:.0f}%.\n"
         + "\n".join(lines) + "\n\n"
-        "측정 결과와 사진을 근거로, 구청 보도 담당자에게 보낼 메모를 쓰세요. 사진과 측정에 없는 내용은 쓰지 마세요.\n"
+        f"유형 규칙: {TYPE_GUIDE.get(link['primary_type'], TYPE_GUIDE['none'])[0]}\n"
+        f"조치 선택지(이 중에서 골라 구체적으로): {TYPE_GUIDE.get(link['primary_type'], TYPE_GUIDE['none'])[1]}\n\n"
+        "측정 결과와 사진을 근거로, 구청 보도 담당자에게 보낼 메모를 쓰세요. 사진과 측정에 없는 내용은 쓰지 마세요. "
+        "유형 규칙 문장을 그대로 베끼지 말고, 원인에는 사진에서 실제로 보이는 구체 요소(예: 어느 쪽에 무엇이 몇 대, "
+        "골목 폭, 노면 상태)를 하나 이상 넣으세요.\n"
         '출력은 JSON 하나: {"cause": "보행 단절 원인 한 문장", "action": "권고 조치 한 문장(단속/정비/구조 개선 중 무엇인지 포함)", '
         '"priority": "즉시|단기|중기"}'
     )
