@@ -82,3 +82,10 @@ def test_grating_walkable_tree_zone_blocks():
     sw2 = _sidewalk(); sw2[110:199, 100:180] = False
     fa = analyze_frame({"sidewalk": [sw2], "tree_zone": [tz]}, (H, W))
     assert fa.ratio == pytest.approx(0.6, abs=0.02)
+
+
+def test_legal_width_aux():
+    frames = [FrameAnalysis(0.9, 0.9, True, [], 0, 2.0, 1.0)] * 3 + [FrameAnalysis(0.9, 0.9, True, [], 0, 2.0, 1.8)]
+    ls = score_link("x", frames)
+    assert ls.frac_below_legal == pytest.approx(0.75) and ls.median_free_width_m == pytest.approx(1.0)
+    assert score_link("y", [_f(0.9)] * 3).frac_below_legal is None

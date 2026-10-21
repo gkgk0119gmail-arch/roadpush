@@ -9,6 +9,8 @@
     type_weight = max_t( frac(tag t) × w_t ),  w = {vanish 1.0, repair 0.8, stairs 0.6}
     등급: 안전(<30) / 주의(30~60) / 위험(≥60)
 휠체어 모드: θ 0.5 → 0.7, stairs 가중 0.6 → 1.0 (확장 기능).
+보조 지표: 절대 통과 가능 폭(m, width_ratio.metric_width) 이 법정 유효폭 1.2 m 미만인 프레임 비중.
+점수에는 넣지 않는다(카메라 높이 가정 의존, 제안자 답변대로 비율이 기본).
 
 보도가 안 보이는 프레임은 r=0, tag=vanish.
 """
@@ -27,6 +29,7 @@ TYPE_WEIGHTS_WHEELCHAIR = {"vanish": 1.0, "repair": 0.8, "stairs": 1.0}
 TYPE_LABEL_KO = {"vanish": "보도 소멸", "narrow": "폭 협소", "repair": "공사·파손",
                  "stairs": "단차·계단", "none": "이상 없음"}
 GRADES = ((60.0, "위험"), (30.0, "주의"), (0.0, "안전"))
+LEGAL_MIN_WIDTH_M = 1.2   # 장애인등편의법 시행규칙 보도 유효폭
 
 
 @dataclass
@@ -50,6 +53,8 @@ class FrameAnalysis:
     sidewalk_present: bool
     tags: list[str]
     n_obstacles_on_sidewalk: int = 0
+    width_m: float | None = None          # 보조: 보도 폭(m)
+    free_width_m: float | None = None     # 보조: 가장 좁은 통과 가능 폭(m)
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -69,7 +74,7 @@ def _lower_band(shape: tuple[int, int], top: float = 0.5) -> Mask:
 
 
 def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, int],
-                  tag_min_frac: float = 0.05) -> FrameAnalysis:
+                  tag_min_frac: float = 0.05, cam_h: float = 1.3) -> FrameAnalysis:
     """클래스명 → 인스턴스 마스크 리스트 를 받아 프레임 지표 계산.
 
     repair/stairs 태그: 하단 절반에서 해당 면적이 (보도 ∪ 해당 면) 대비 tag_min_frac 이상.
@@ -78,7 +83,7 @@ def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, i
     instances = [m for c in (*OBSTACLE_CLASSES, *BLOCKING_SURFACES) for m in class_masks.get(c, ())]
     obstacle = obstacles_on_sidewalk(walk, instances)
     n_on = sum(1 for m in instances if (m & obstacle).any())
-    fr: FrameResult = frame_ratio(walk, obstacle)
+    fr: FrameResult = frame_ratio(walk, obstacle, cam_h=cam_h)
 
     tags: list[str] = []
     if not fr.sidewalk_present:
@@ -89,7 +94,9 @@ def analyze_frame(class_masks: Mapping[str, Sequence[Mask]], shape: tuple[int, i
         area = int((_union(class_masks.get(cls, ()), shape) & band).sum())
         if area and area / max(1, walk_band + area) >= tag_min_frac:
             tags.append(tag)
-    return FrameAnalysis(fr.ratio, fr.min_ratio, fr.sidewalk_present, tags, n_on)
+    mw = fr.metric
+    return FrameAnalysis(fr.ratio, fr.min_ratio, fr.sidewalk_present, tags, n_on,
+                         mw.width_m if mw else None, mw.min_free_m if mw else None)
 
 
 # ---------------------------------------------------------------- 링크
@@ -106,6 +113,8 @@ class LinkScore:
     frac_below: float
     type_weight: float
     type_fracs: dict[str, float]
+    median_free_width_m: float | None = None
+    frac_below_legal: float | None = None   # 절대폭 추정된 프레임 중 1.2 m 미만 비중
 
     def to_dict(self) -> dict:
         d = asdict(self)
@@ -141,9 +150,12 @@ def score_link(link_id: str, frames: Sequence[FrameAnalysis], profile: Profile =
         primary = "narrow"
     else:
         primary = "none"
+    fw = np.array([f.free_width_m for f in frames if f.free_width_m is not None], dtype=float)
     return LinkScore(link_id, len(frames), round(s, 1), grade_of(s), primary,
                      round(p10, 3), round(float(np.median(r)), 3), round(below, 3), round(tw, 3),
-                     {k: round(v, 3) for k, v in fracs.items()})
+                     {k: round(v, 3) for k, v in fracs.items()},
+                     round(float(np.median(fw)), 2) if len(fw) else None,
+                     round(float((fw < LEGAL_MIN_WIDTH_M).mean()), 3) if len(fw) else None)
 
 
 def score_links(frames_by_link: Mapping[str, Sequence[FrameAnalysis]], profile: Profile = PEDESTRIAN,

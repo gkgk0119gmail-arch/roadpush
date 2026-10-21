@@ -26,7 +26,8 @@ def load_frame_results(path: Path) -> dict[str, FrameAnalysis]:
         for line in f:
             r = json.loads(line)
             out[r["frame"]] = FrameAnalysis(r["ratio"], r["min_ratio"], r["sidewalk_present"], r["tags"],
-                                            r.get("n_obstacles_on_sidewalk", 0))
+                                            r.get("n_obstacles_on_sidewalk", 0), r.get("width_m"),
+                                            r.get("free_width_m"))
     return out
 
 
@@ -41,7 +42,8 @@ def link_frames(frames_csv: Path, results: dict[str, FrameAnalysis], snapper: Li
                 continue
             s = snapper.snap(float(r["lon"]), float(r["lat"]))
             rows.append({**r, "link_id": s.link_id or "", "dist_m": round(s.dist_m, 2),
-                         "ratio": round(fa.ratio, 3), "tags": "|".join(fa.tags)})
+                         "ratio": round(fa.ratio, 3), "tags": "|".join(fa.tags),
+                         "free_width_m": "" if fa.free_width_m is None else fa.free_width_m})
             if s.link_id:
                 by_link[s.link_id].append(fa)
     return by_link, rows

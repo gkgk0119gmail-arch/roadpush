@@ -156,6 +156,9 @@ def page_detail(session: str, profile: str):
     c[1].metric("단절 유형", TYPE_LABEL_KO[r[type_col]])
     c[2].metric("P10 / 중앙 비율", f"{r.p10_ratio:.2f} / {r.median_ratio:.2f}")
     c[3].metric(f"비율<θ 프레임", f"{r.frac_below * 100:.0f}%")
+    if "median_free_width_m" in r and pd.notna(r.get("median_free_width_m")):
+        st.caption(f"보조 지표(카메라 높이 1.3 m 가정): 통과 가능 폭 중앙값 {r.median_free_width_m:.2f} m · "
+                   f"법정 유효폭 1.2 m 미만 프레임 {r.frac_below_legal * 100:.0f}% (절대폭 추정 가능 프레임 기준)")
 
     vlm = load_vlm(session)
     v = vlm.get("links", {}).get(lid)

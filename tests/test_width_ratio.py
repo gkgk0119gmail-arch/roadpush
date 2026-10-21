@@ -73,3 +73,36 @@ def test_dilate_grows_square():
     m = _canvas(); m[50, 50] = True
     d = dilate(m, 2)
     assert d[48:53, 48:53].all() and not d[47, 50] and not d[50, 53]
+
+
+def _trapezoid(h=400, w=800, y_h=100.0, a=1.5, cx=400):
+    """지평선 y_h 에서 만나는 사다리꼴 보도: span(y) = a·(y−y_h)."""
+    S = np.zeros((h, w), dtype=bool)
+    for y in range(int(y_h) + 1, h):
+        half = a * (y - y_h) / 2
+        S[y, max(0, int(round(cx - half))):min(w, int(round(cx + half)))] = True
+    return S
+
+
+def test_metric_width_recovers_geometry():
+    from roadpush.width_ratio import frame_ratio
+    S = _trapezoid()
+    fr = frame_ratio(S, np.zeros_like(S), cam_h=1.3)
+    mw = fr.metric
+    assert mw is not None and mw.r2 > 0.99
+    assert mw.horizon_y == pytest.approx(100, abs=3)
+    assert mw.width_m == pytest.approx(1.3 * 1.5, rel=0.03)      # h·a
+    assert mw.min_free_m == pytest.approx(mw.width_m, rel=0.05)
+
+
+def test_metric_width_obstacle_and_edge_cut():
+    from roadpush.width_ratio import frame_ratio
+    S = _trapezoid()
+    O = np.zeros_like(S); O[200:390, 330:400] = True; S[200:390, 330:400] = False   # 왼쪽 절반 가로막음
+    mw = frame_ratio(S, O, cam_h=1.3).metric
+    assert mw is not None and mw.min_free_m < mw.width_m * 0.7
+    wide = _trapezoid(a=4.0)          # 아래쪽 행은 화면 밖으로 잘림 → 잘리지 않은 행만으로 추정
+    mw = frame_ratio(wide, np.zeros_like(wide)).metric
+    assert mw is not None and mw.width_m == pytest.approx(1.3 * 4.0, rel=0.03)
+    wider = _trapezoid(a=8.0)         # 남는 행이 min_rows 미만 → None
+    assert frame_ratio(wider, np.zeros_like(wider)).metric is None

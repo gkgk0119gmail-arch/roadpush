@@ -52,3 +52,10 @@ Polygon valid 40장, GT 면적 ≥ 1500 px² 객체를 '있음'으로.
 | A안 surface (Medium) | surface_v1 | Surface valid, 면 | |
 | A안 obstacle (Medium) | polygon_v1 | Polygon valid, 장애물 | |
 | B안 unified (Medium) | unified_v1 (GT + SAM 3 보강) | 양쪽 | |
+
+## 4. 절대폭 보조 지표 (GT 마스크, Surface valid 239장)
+
+카메라 높이 1.3 m 가정, 스캔라인 폭 선형 적합(R² ≥ 0.9)으로 지평선 추정 → W = h·a.
+- 보도가 보이는 175장 중 **52장(30%)만 추정 가능**: 보도 위에서 찍으면 하단 행이 화면 좌우 끝까지 차서 잘림.
+- 보도 폭 P10/50/90 = 0.79 / 1.48 / 2.35 m, 통과 가능 폭 < 1.2 m 비중 29%.
+- AI Hub 촬영 높이 미상이라 값 자체는 참고용. 점수에는 넣지 않고 링크 상세에 보조로만 표시 (제안자 답변: 비율 기본).

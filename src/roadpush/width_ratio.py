@@ -12,6 +12,11 @@
 
 프레임 값은 하단 여러 스캔라인의 중앙값. 보도가 거의 안 보이면 sidewalk_present=False.
 
+절대폭(보조 지표, 1.2 m 법정 유효폭 비교용) — metric_width():
+    평지·직선·폭 일정한 보도를 카메라 롤 0 으로 보면 행 y 의 보도 폭(px)은 span(y) = a·(y − y_h) (y_h: 지평선).
+    핀홀 모델에서 지면 거리 Z = h·f/(y − y_h), 실제 폭 W = span·Z/f = h·a  → 초점거리 없이 **카메라 높이 h 만** 필요.
+    지나갈 수 있는 폭 = h·free(y)/(y − y_h). 가정이 깨지면(곡선·경사·화면 밖) 적합도(R²)로 걸러 None.
+
 장애물은 "보도 위에 있는 것"만 센다: 인스턴스의 발점(footpoint, 가장 아래 행의 중앙 x)이
 팽창시킨 보도 마스크 안에 있으면 보도 위로 판정 (차도 위 차량 배제).
 """
@@ -31,6 +36,8 @@ class RowResult:
     span: int
     free: int
     blocked: int
+    x0: int = 0          # corridor 시작 x
+    x1: int = 0          # corridor 끝 x (exclusive)
 
     @property
     def ratio(self) -> float:
@@ -44,6 +51,7 @@ class FrameResult:
     sidewalk_present: bool
     rows: list[RowResult] = field(default_factory=list)
     n_rows_requested: int = 0
+    metric: "MetricWidth | None" = None
 
     @property
     def valid_fraction(self) -> float:
@@ -123,15 +131,45 @@ def row_ratio(sidewalk_row: np.ndarray, obstacle_row: np.ndarray, y: int = 0,
     free_runs = runs(S[a:b] & ~O[a:b])
     free = max((e - s for s, e in free_runs), default=0)
     blocked = int(O[a:b].sum())
-    return RowResult(y=y, span=b - a, free=free, blocked=blocked)
+    return RowResult(y=y, span=b - a, free=free, blocked=blocked, x0=a, x1=b)
 
 
 def default_rows(height: int, fractions: Sequence[float] = (0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9)) -> list[int]:
     return [min(height - 1, int(round(height * f))) for f in fractions]
 
 
+@dataclass
+class MetricWidth:
+    width_m: float          # 보도 폭 (h·a)
+    min_free_m: float       # 스캔라인 중 가장 좁은 통과 가능 폭
+    horizon_y: float
+    r2: float
+    n_rows: int
+
+
+def metric_width(rows: Sequence[RowResult], img_w: int, cam_h: float = 1.3, min_rows: int = 4,
+                 min_r2: float = 0.9, edge_px: int = 2) -> MetricWidth | None:
+    """스캔라인 폭의 선형성으로 지평선을 추정해 m 단위 폭 계산. 가정이 안 맞으면 None."""
+    rs = [r for r in rows if r.x0 > edge_px and r.x1 < img_w - edge_px]   # 화면 가장자리에 잘린 행 제외
+    if len(rs) < min_rows:
+        return None
+    y = np.array([r.y for r in rs], float)
+    span = np.array([r.span for r in rs], float)
+    a, c = np.polyfit(y, span, 1)
+    if a <= 0:
+        return None
+    pred = a * y + c
+    ss = float(((span - span.mean()) ** 2).sum())
+    r2 = 1.0 - float(((span - pred) ** 2).sum()) / ss if ss > 0 else 0.0
+    y_h = -c / a
+    if r2 < min_r2 or y_h >= y.min():
+        return None
+    free_m = [cam_h * r.free / (r.y - y_h) for r in rs]
+    return MetricWidth(round(float(cam_h * a), 3), round(float(min(free_m)), 3), round(float(y_h), 1), round(r2, 3), len(rs))
+
+
 def frame_ratio(sidewalk: Mask, obstacle: Mask, rows: Sequence[int] | None = None,
-                min_sidewalk_px: int = 40, min_valid_fraction: float = 0.5) -> FrameResult:
+                min_sidewalk_px: int = 40, min_valid_fraction: float = 0.5, cam_h: float = 1.3) -> FrameResult:
     """프레임 하나의 유효보행폭 비율.
 
     sidewalk : 걸을 수 있는 면(sidewalk ∪ braille) 마스크
@@ -148,4 +186,5 @@ def frame_ratio(sidewalk: Mask, obstacle: Mask, rows: Sequence[int] | None = Non
     if len(results) < max(1, int(np.ceil(min_valid_fraction * len(rows)))):
         return FrameResult(0.0, 0.0, False, results, len(rows))
     ratios = np.array([r.ratio for r in results])
-    return FrameResult(float(np.median(ratios)), float(ratios.min()), True, results, len(rows))
+    mw = metric_width(results, sidewalk.shape[1], cam_h)
+    return FrameResult(float(np.median(ratios)), float(ratios.min()), True, results, len(rows), mw)
