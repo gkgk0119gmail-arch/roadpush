@@ -28,6 +28,7 @@ from shapely.strtree import STRtree
 AREAS: dict[str, tuple[float, float, float, float]] = {
     "sinchon": (126.930, 37.553, 126.946, 37.563),   # 신촌역~연세대 정문~이대 앞
     "yeouido": (126.915, 37.518, 126.935, 37.530),
+    "jung_gu": (126.9795, 37.5585, 126.9980, 37.5695),  # 명동·을지로 (Mapillary 보행 사진 밀집)
 }
 
 # 실외 보행과 무관한 태그

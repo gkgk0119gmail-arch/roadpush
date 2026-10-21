@@ -34,3 +34,4 @@ __pycache__/
 .aihub_key
 cache/
 dist/
+.mapillary_token
