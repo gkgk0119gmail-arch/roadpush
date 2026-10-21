@@ -30,6 +30,22 @@ EOF
   ONNX+=("outputs/onnx/deploy/m$i/rfdetr-seg-medium.onnx"); i=$((i + 1))
 done
 
+# FULL=1: (GPU 가 빈 마지막 단계에서) 최종 모델로 도심 세션 재추론 + VLM 8B 메모
+if [ "${FULL:-0}" = "1" ] && [ -d outputs/mly_downtown_all ]; then
+  for r in outputs/mly_downtown_all outputs/mly_downtown_pano; do
+    $R -m roadpush.infer --ckpt $CHOICE --run $r --overlay-every 1 2>&1 | grep -v -i warn | tail -1
+  done
+  rm -rf outputs/mly_downtown
+  $R -m roadpush.merge_runs --out outputs/mly_downtown --run p:outputs/mly_downtown_all --run v:outputs/mly_downtown_pano
+  $R -m roadpush.aggregate --run outputs/mly_downtown --links data/links/downtown.geojson --session mly_downtown
+  $R -m roadpush.vlm explain --run outputs/mly_downtown --model Qwen/Qwen3-VL-8B-Instruct --top 40 || echo "VLM 실패(계속)"
+  rm -rf app/data/mly_downtown && mkdir -p app/data/mly_downtown
+  for f in links_scored.geojson frames_linked.csv attribution.json links_vlm.json; do
+    if [ -f outputs/mly_downtown/$f ]; then cp outputs/mly_downtown/$f app/data/mly_downtown/; fi
+  done
+  cp -rL outputs/mly_downtown/overlay app/data/mly_downtown/
+fi
+
 SAMPLES=$(ls outputs/mly_junggu_2025/frames | sed -n '85p;200p;400p' | sed 's|^|outputs/mly_junggu_2025/frames/|' | tr '\n' ' ')
 SESS=()
 if [ -f app/data/mly_downtown/links_scored.geojson ]; then SESS+=(--session "mly_downtown:서울 도심(중구·종로) 전 연도 통합"); fi
