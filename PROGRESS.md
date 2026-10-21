@@ -2,6 +2,14 @@
 
 자율 개발 루프(10분 체크) 기록. 최신이 위.
 
+## 2026-10-21 (D0) 19시 10분: 테스트 URL 배포 (정적 웹앱, 비공개)
+
+- HF 가 **Gradio/Docker Space 무료 CPU 를 PRO 전용**으로 변경(Streamlit SDK 는 아예 없음) → 사용자 결정: 무료 **정적 웹앱**.
+- `web/` (Leaflet 대시보드: 지도·통계·우선순위·링크 상세(8B 메모·비율 타임라인·대표 프레임)·사진 분석·방법·출처) + `scripts/build_static.py`.
+- 사진 분석: RF-DETR-Seg 2개를 ONNX 로 내보내 **onnxruntime-web 으로 브라우저 안에서 추론**, 파이썬 width_ratio/analyze_frame 을 JS 로 이식. 같은 사진 비율 JS 0.589 vs 파이썬 0.556, 태그·장애물 수 일치, 6초/장(로컬). ONNX↔PyTorch 마스크 IoU 0.999. int8 양자화는 정확도 붕괴, fp16 변환은 타입 오류 → fp32(138 MB×2) 유지, 사진 분석 탭 진입 시에만 로드.
+- Playwright(시스템 크롬)로 지도·상세·사진 분석 흐름 자동 점검, 페이지 오류 0.
+- **배포**: https://huggingface.co/spaces/YunSangNam/roadpush (비공개, RUNNING, 앱 https://yunsangnam-roadpush.static.hf.space). 최종 모델 확정 후 재빌드·재업로드, 제출 직전 공개 전환.
+
 ## 2026-10-21 (D0) 18시 50분: 배포 패키지 리허설
 
 - `build_space.py` 실데이터 빌드: dist/space 434 MB(실사진 세션 165 MB, 모델 2개 272 MB, LFS). Space 폴더 기준 AppTest 예외 없음, CPU 추론 0.4~0.6 s/장(모델 2개), 로드 4.7 s.
