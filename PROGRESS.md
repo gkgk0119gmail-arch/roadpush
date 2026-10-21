@@ -2,6 +2,13 @@
 
 자율 개발 루프(10분 체크) 기록. 최신이 위.
 
+## 2026-10-21 (D0) 18시 40분: AI Hub 다운로드 완료, 보도면 v2 계획
+
+- AI Hub 189 **전체 다운로드 완료**: Polygon 14 + Surface 5 (zip 무결성 검사 통과). Surface 전체 46,399장: stairs 1,485(Surface_1 대비 8배)·repair_zone 207·bike_lane 3,585.
+- **surface_v2** = surface_v1 + 희소 면(계단·공사·자전거도로) 포함 이미지 → train 11,676 / valid 1,248, v1 valid 누수 0.
+- 끝난 학습의 epoch 중간 체크포인트 삭제(11 GB 확보, best·last 가중치 유지).
+- 대기열 3단: `queue`(SAM 3 의사 라벨→통합 학습) → `queue2`(장애물 v2→최선 조합→데모·보고서) → `queue3`(보도면 v2→비율 MAE 우선 선택→바뀌면 데모·보고서 재생성→체크포인트 정리).
+
 ## 2026-10-21 (D0) 18시 20분: VLM bench, SAM 3 의사 라벨 품질 점검
 
 - VLM bench 200장: 평균 acc 2B 0.886 / 8B 0.895. 8B 도 car 오경보 29%·person 14%, 소형 객체 재현율 ~50% → 단독 판정 불가, 교차검증 설계 근거(`docs/results.md` 2절).
