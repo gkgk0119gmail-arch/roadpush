@@ -112,7 +112,7 @@ def walking_sequences(images: list[dict], min_len: int = 10, speed=(0.5, 2.5), y
 
 
 def download(seqs: dict[str, list[dict]], out: Path, size: int = 2048, min_gap_m: float = 1.0,
-             workers: int = 8) -> int:
+             workers: int = 4) -> int:
     """시퀀스 순서대로 저장. 거의 같은 위치(min_gap_m 미만) 연속 사진은 건너뜀(정지 구간). 이미 받은 파일은 건너뜀."""
     from concurrent.futures import ThreadPoolExecutor
 
@@ -133,13 +133,18 @@ def download(seqs: dict[str, list[dict]], out: Path, size: int = 2048, min_gap_m
         dst = fdir / name
         if dst.exists() and dst.stat().st_size > 0:
             return True
-        url = _get(x["id"], fields=f"thumb_{size}_url").get(f"thumb_{size}_url")
-        if not url:
-            return False
-        tmp = dst.with_suffix(".part")
-        tmp.write_bytes(urllib.request.urlopen(url, timeout=60).read())
-        tmp.replace(dst)
-        return True
+        for k in range(5):   # 503(혼잡) 등은 백오프 후 재시도, 끝내 실패하면 그 장만 건너뜀
+            try:
+                url = _get(x["id"], fields=f"thumb_{size}_url").get(f"thumb_{size}_url")
+                if not url:
+                    return False
+                tmp = dst.with_suffix(".part")
+                tmp.write_bytes(urllib.request.urlopen(url, timeout=60).read())
+                tmp.replace(dst)
+                return True
+            except Exception:
+                time.sleep(3 * (k + 1))
+        return False
 
     with ThreadPoolExecutor(workers) as ex:
         ok = list(ex.map(fetch, plan))
@@ -184,7 +189,7 @@ def main(argv: list[str] | None = None) -> None:
     if args.max_seqs:
         seqs = dict(sorted(seqs.items(), key=lambda kv: -len(kv[1]))[: args.max_seqs])
     n = download(seqs, args.out)
-    print(f"저장 {n}장 → {args.out}")
+    print(f"저장 {n}장 / 계획 대비 누락은 재실행으로 이어받기 → {args.out}")
 
 
 if __name__ == "__main__":
