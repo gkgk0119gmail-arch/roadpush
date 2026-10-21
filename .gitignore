@@ -36,3 +36,4 @@ cache/
 dist/
 .mapillary_token
 .hf_token_write
+!docs/media/RoadPush_demo.mp4

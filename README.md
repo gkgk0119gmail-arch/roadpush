@@ -7,7 +7,7 @@
 - **대상**: 서울 도심(중구·종로) — 공개 거리 사진(Mapillary, CC BY-SA) 7,559장(360° 변환 포함)의 실제 촬영 위치, **464개 링크 · 28.3 km 측정**
 - **사용자**: 지자체·도로관리기관 보도 담당자 — 어디부터 단속·정비할지 우선순위
 
-진행 기록 [PROGRESS.md](PROGRESS.md) · 결과 수치 [docs/results.md](docs/results.md) · 계획 [PLAN.md](PLAN.md)
+**데모 영상(2분 32초)**: [docs/media/RoadPush_demo.mp4](docs/media/RoadPush_demo.mp4) · 진행 기록 [PROGRESS.md](PROGRESS.md) · 결과 수치 [docs/results.md](docs/results.md) · 계획 [PLAN.md](PLAN.md)
 
 ---
 
