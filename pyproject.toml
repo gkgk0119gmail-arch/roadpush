@@ -20,7 +20,7 @@ dependencies = [
 
 [project.optional-dependencies]
 # torch / rfdetr 는 CUDA 버전에 맞춰 scripts/setup_env.sh 에서 별도 설치
-train = ["supervision", "pycocotools"]
+train = ["supervision", "pycocotools"]  # + pip install "rfdetr[train,loggers]"
 geo = ["geopandas", "osmnx", "gpxpy", "requests"]
 app = ["streamlit", "folium", "streamlit-folium", "pydeck", "pandas", "pillow"]
 dev = ["pytest", "ruff"]

@@ -8,7 +8,7 @@ echo "== [1/3] roadpush env (py3.11): torch cu128 + rfdetr + app =="
 conda create -y -n roadpush python=3.11
 conda run -n roadpush pip install --upgrade pip
 conda run -n roadpush pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
-conda run -n roadpush pip install rfdetr supervision
+conda run -n roadpush pip install "rfdetr[train,loggers]" supervision
 # rfdetr가 torch를 CPU 버전으로 바꿔치기하면 아래 줄을 다시 실행
 # conda run -n roadpush pip install --force-reinstall torch torchvision --index-url https://download.pytorch.org/whl/cu128
 conda run -n roadpush pip install -e ".[train,geo,app,dev]"
