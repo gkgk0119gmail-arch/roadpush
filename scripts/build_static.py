@@ -129,7 +129,7 @@ def build_session(src: Path, out: Path, width: int, base_links: Path | None = No
         p = src / "overlay" / fn
         if p.exists():
             im = Image.open(p).convert("RGB")
-            im.resize((width, round(im.height * width / im.width))).save(od / fn, quality=78)
+            im.resize((width, round(im.height * width / im.width))).save(od / fn, quality=72)
             n += 1
     if (src / "attribution.json").exists():
         shutil.copy2(src / "attribution.json", out / "attribution.json")
@@ -146,7 +146,7 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--onnx", nargs="+", type=Path, required=True)
     ap.add_argument("--meta", type=Path, default=ROOT / "outputs/onnx/meta.json")
     ap.add_argument("--samples", nargs="*", type=Path, default=[])
-    ap.add_argument("--width", type=int, default=640)
+    ap.add_argument("--width", type=int, default=480)   # HF Space 1 GB 한도
     args = ap.parse_args(argv)
 
     out = args.out

@@ -58,5 +58,8 @@ api = HfApi(token=open(".hf_token_write").read().strip())
 info = api.upload_folder(folder_path="dist/static", repo_id="YunSangNam/roadpush", repo_type="space",
                          commit_message="RoadPush 정적 웹앱 갱신: 최종 모델·분석 결과", delete_patterns=["data/**", "models/**"])
 print(info.commit_url)
+# HF Space 저장 한도 1 GB(이력의 LFS 포함) → 매 배포 후 이력을 한 커밋으로 합친다.
+# 그래도 한도에 걸리면 Space 를 지웠다 다시 만든다(내용은 전부 재생성 가능).
+api.super_squash_history(repo_id="YunSangNam/roadpush", repo_type="space", commit_message="RoadPush 정적 웹앱")
 EOF
 echo "[$(date +%H:%M)] 재배포 완료"

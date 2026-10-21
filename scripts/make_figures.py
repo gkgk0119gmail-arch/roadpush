@@ -253,7 +253,7 @@ def fig_push(session: Path, links: Path, out: Path, min_frac: float = 0.3) -> di
     def good_view(f) -> bool:
         """대표 사진 조건: 바닥(골목·차도·보도)이 보이고, 장애물(빨강 오버레이)이 화면을 덮지 않음."""
         c = rs[f].get("counts", {})
-        if not any(c.get(k, 0) for k in ("alley", "roadway", "sidewalk")):
+        if not any(c.get(k, 0) for k in ("alley", "roadway")):   # 차도로 밀려나는 장면: 차도·골목이 보여야
             return False
         a = np.asarray(Image.open(session / "overlay" / f).convert("RGB")).astype(int)
         red = ((a[..., 0] > 160) & (a[..., 0] - a[..., 1] > 60) & (a[..., 0] - a[..., 2] > 25)).mean()   # 반투명 섞인 분홍 포함
