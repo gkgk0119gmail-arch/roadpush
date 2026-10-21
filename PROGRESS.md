@@ -2,6 +2,15 @@
 
 자율 개발 루프(10분 체크) 기록. 최신이 위.
 
+## 2026-10-21 (D0) 13시 15분: Polygon 확인, A/B 두 갈래
+
+- Polygon_1: 300 XML / 14,838장, 장애물 11종 전부 매핑(미매핑 0), **보도면 라벨 0**. → Surface(면만)·Polygon(장애물만) 라벨이 서로 배타적.
+- `data/coco/polygon_v1` (train 13,272 / valid 1,566, 폴더 단위 분할).
+- **A안(기준선)**: 보도면 모델 + 장애물 모델 따로 학습, `Predictor`가 여러 체크포인트 결과를 합침. 학습: tmux `train`(surface) → `train_q`(obstacle) 순차.
+- **B안(개선)**: SAM 3로 결측 클래스 의사 라벨(Polygon train에 면 7종, Surface train에 장애물 9종) → `merge_coco.py`로 통합 → 단일 모델. tmux `sam3` (0.53 s/img). A안 학습 우선을 위해 SAM 3 프로세스 SIGSTOP, 학습 끝나면 `sam3_resume`이 자동 재개.
+- 학습 중 1080p 마스크 검증이 epoch당 15분 → `eval_masks_head_resolution` + 2 epoch 간격으로 변경. 최종 지표는 `evaluate.py --classes surface|obstacle`.
+- 테스트 26개 통과.
+
 ## 2026-10-21 (D0) 13시: 분할 누수 수정, 시뮬레이션 세션
 
 - AI Hub 폴더 = 연속 프레임 → 이미지 단위 분할은 인접 프레임이 valid 로 새서 지표가 부풀려짐. **XML(폴더) 단위 분할(`--split-by xml`, 기본)** 로 바꾸고 surface 학습 재시작(`seg_m_surface_v1`, train 8,604 / valid 954).
