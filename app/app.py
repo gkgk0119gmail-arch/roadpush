@@ -33,7 +33,7 @@ CKPT = os.environ.get("ROADPUSH_CKPT", str(ROOT / "app" / "model" / "roadpush_se
 SIZE = os.environ.get("ROADPUSH_SIZE", "medium")
 
 GRADE_COLOR = {"위험": "#d7263d", "주의": "#f4a259", "안전": "#2a9d8f"}
-CENTER = (37.5585, 126.9375)
+CENTER = (37.5640, 126.9880)   # 데이터가 있으면 fit_bounds 로 덮어씀
 
 st.set_page_config(page_title="RoadPush 보행공간 단절 위험도", page_icon="🚶", layout="wide")
 
@@ -265,6 +265,9 @@ with st.sidebar:
     st.caption("점수 = 100×[0.4·(1−P10 비율) + 0.3·비율<θ 프레임 비중 + 0.3·유형 가중]\n\n"
                "등급: 안전 <30 · 주의 30~60 · 위험 ≥60")
 
+if session and (DATA / session / "attribution.json").exists():
+    st.caption("거리 사진: © Mapillary contributors, CC BY-SA 4.0 (보행 시퀀스, 실제 촬영 위치). "
+               "얼굴·번호판은 Mapillary 자동 블러 처리.")
 if session and session.startswith("sim_"):
     st.warning("시뮬레이션 세션: AI Hub 인도보행 영상(학습 미사용 폴더)을 신촌 링크 위 가상 보행 경로에 배치한 결과입니다. "
                "영상 분석은 실제이나 위치는 실제 촬영 위치가 아닙니다.", icon="⚠️")

@@ -86,7 +86,7 @@ def main(argv: list[str] | None = None) -> None:
     for s in args.sessions:
         d = data / s.name
         d.mkdir()
-        for f in ("links_scored.geojson", "frames_linked.csv", "links_vlm.json"):
+        for f in ("links_scored.geojson", "frames_linked.csv", "links_vlm.json", "attribution.json"):
             if (s / f).exists():
                 shutil.copy2(s / f, d / f)
         if (s / "overlay").exists():
