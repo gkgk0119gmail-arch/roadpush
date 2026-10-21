@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+import json
 import os
 import sys
 from pathlib import Path
@@ -47,6 +48,12 @@ def sessions() -> list[str]:
 @st.cache_data
 def load_scored(session: str) -> gpd.GeoDataFrame:
     return gpd.read_file(DATA / session / "links_scored.geojson")
+
+
+@st.cache_data
+def load_vlm(session: str) -> dict:
+    p = DATA / session / "links_vlm.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
 @st.cache_data
@@ -149,6 +156,17 @@ def page_detail(session: str, profile: str):
     c[1].metric("단절 유형", TYPE_LABEL_KO[r[type_col]])
     c[2].metric("P10 / 중앙 비율", f"{r.p10_ratio:.2f} / {r.median_ratio:.2f}")
     c[3].metric(f"비율<θ 프레임", f"{r.frac_below * 100:.0f}%")
+
+    vlm = load_vlm(session)
+    v = vlm.get("links", {}).get(lid)
+    if v and v.get("memo"):
+        m = v["memo"]
+        st.info(f"**AI 점검 메모** ({m.get('priority', '-')})\n\n"
+                f"- 원인: {m.get('cause', '-')}\n- 권고: {m.get('action', '-')}")
+        conf = sorted({c for f in v["frames"] for c in f["confirmed"]})
+        st.caption(f"멀티모달 LLM({vlm['meta']['model'].split('/')[-1]})이 측정값과 대표 프레임을 근거로 작성. "
+                   f"세그멘테이션·LLM 모두 확인한 요소: {', '.join(conf) or '없음'} · "
+                   f"세션 전체 세그–LLM 일치율 {vlm['meta']['seg_vlm_agreement']}")
 
     fr = load_frames(session)
     fr = fr[fr.link_id == lid] if len(fr) else fr

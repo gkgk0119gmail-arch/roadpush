@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 시뮬레이션 데모 2세션(같은 경로, 다른 장면) 생성 → 추론 → 링크 집계 → app/data 에 배치.
-# 사용: bash scripts/run_sim_demo.sh <ckpt> [<ckpt2> ...]
+# 사용: [VLM=Qwen/Qwen3-VL-8B-Instruct] bash scripts/run_sim_demo.sh <ckpt> [<ckpt2> ...]
 #   예: bash scripts/run_sim_demo.sh checkpoints/seg_m_surface_v1/checkpoint_best_total.pth \
 #                                    checkpoints/seg_m_obstacle_v1/checkpoint_best_total.pth
 set -euo pipefail
@@ -21,8 +21,12 @@ for spec in "sim_aihub_1:0" "sim_aihub_2:1"; do
       --seed "$seed" --route-seed 7 --holdout-coco "$HOLD"
   $PY -m roadpush.infer --ckpt "$@" --run "$out" --overlay-every 1
   $PY -m roadpush.aggregate --run "$out" --links "$LINKS" --session "$name"
+  if [ -n "${VLM:-}" ]; then   # 예: VLM=Qwen/Qwen3-VL-8B-Instruct
+    $PY -m roadpush.vlm explain --run "$out" --model "$VLM" --top 25
+  fi
   rm -rf "app/data/$name" && mkdir -p "app/data/$name"
   cp "$out/links_scored.geojson" "$out/frames_linked.csv" "app/data/$name/"
+  if [ -f "$out/links_vlm.json" ]; then cp "$out/links_vlm.json" "app/data/$name/"; fi
   cp -r "$out/overlay" "app/data/$name/"
 done
 echo "완료: app/data  →  env -u PYTHONPATH streamlit run app/app.py"
