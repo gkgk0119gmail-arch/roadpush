@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "roadpush"
+version = "0.1.0"
+description = "RoadPush: 보행공간 단절 위험도 자동 산출 PoC (2026 AI 라이프 솔루션 챌린지)"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+dependencies = [
+  "numpy",
+  "opencv-python-headless",
+  "lxml",
+  "pyyaml",
+  "tqdm",
+  "shapely",
+  "pyproj",
+]
+
+[project.optional-dependencies]
+# torch / rfdetr 는 CUDA 버전에 맞춰 scripts/setup_env.sh 에서 별도 설치
+train = ["supervision", "pycocotools"]
+geo = ["geopandas", "osmnx", "gpxpy", "requests"]
+app = ["streamlit", "folium", "streamlit-folium", "pydeck", "pandas", "pillow"]
+dev = ["pytest", "ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
