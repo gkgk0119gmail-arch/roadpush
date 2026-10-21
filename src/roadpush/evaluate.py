@@ -24,7 +24,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from .classes import CLASSES
+from .classes import CLASSES, OBSTACLE_CLASSES, SURFACE_CLASSES
 from .scoring import analyze_frame
 
 
@@ -101,7 +101,11 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--score-min", type=float, default=0.0)
     ap.add_argument("--max-images", type=int, default=0)
     ap.add_argument("--out", type=Path, default=None)
+    ap.add_argument("--classes", default="all",
+                    help="평가할 클래스: all | surface | obstacle | 쉼표 목록. GT가 일부 클래스만 라벨된 소스용")
     args = ap.parse_args(argv)
+    keep = {"all": set(CLASSES), "surface": set(SURFACE_CLASSES),
+            "obstacle": set(OBSTACLE_CLASSES)}.get(args.classes, set(args.classes.split(",")))
 
     gt, gid2name, gt_by = _load_coco(args.gt / "_annotations.coco.json")
     ims = gt["images"][: args.max_images] if args.max_images else gt["images"]
@@ -127,11 +131,14 @@ def main(argv: list[str] | None = None) -> None:
             if shape != (h, w):   # 원본 해상도로 맞춤
                 prm = {c: [cv2.resize(m.astype(np.uint8), (w, h), interpolation=cv2.INTER_NEAREST).astype(bool)
                            for m in ms] for c, ms in prm.items()}
+        gtm = {c: v for c, v in gtm.items() if c in keep}
+        prm = {c: v for c, v in prm.items() if c in keep}
         acc.add(gtm, prm, (h, w))
         if k % 50 == 0:
             print(f"  {k + 1}/{len(ims)}", flush=True)
     rep = acc.report()
     rep["source"] = " + ".join(args.ckpt) if args.ckpt else str(args.pred_coco)
+    rep["gt"], rep["classes"] = str(args.gt), args.classes
     print(json.dumps(rep, ensure_ascii=False, indent=2))
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
