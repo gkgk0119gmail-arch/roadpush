@@ -40,11 +40,11 @@ def _font() -> None:
 
 def fig_compare(out: Path) -> None:
     ev = ROOT / "outputs"
-    rows = [("SAM 3 (zero-shot)", ev / "teachers/eval_sam3_surface.json"),
-            ("Grounding DINO+SAM 2 (zero-shot)", ev / "teachers/eval_gdino_surface.json"),
-            ("RoadPush RF-DETR-Seg (파인튜닝)", ev / "eval/eval_surface_final_150.json")]
+    rows = [("SAM 3 (zero-shot)", ev / "teachers/eval_sam3_surface_v2.json"),
+            ("Grounding DINO+SAM 2 (zero-shot)", ev / "teachers/eval_gdino_surface_v2.json"),
+            ("RoadPush RF-DETR-Seg (파인튜닝)", ev / "eval/eval_surface_final_150_v2.json")]
     data = [(n, json.loads(p.read_text())) for n, p in rows if p.exists()]
-    metrics = [("유효보행폭 비율 오차 (MAE, 낮을수록 좋음)", "ratio_mae", "{:.3f}"),
+    metrics = [("유효보행폭 비율 오차 (병목 MAE, 낮을수록 좋음)", "ratio_mae", "{:.3f}"),
                ("보도 IoU (높을수록 좋음)", None, "{:.2f}"),
                ("보도 소멸 판정 F1 (높을수록 좋음)", "vanish_f1", "{:.2f}")]
     fig, axes = plt.subplots(1, 3, figsize=(15, 3.6))

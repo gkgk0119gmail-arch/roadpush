@@ -81,7 +81,7 @@ def test_grating_walkable_tree_zone_blocks():
     tz = np.zeros((H, W), dtype=bool); tz[110:199, 100:180] = True    # 가로수 보호틀: 보도 왼쪽 40%
     sw2 = _sidewalk(); sw2[110:199, 100:180] = False
     fa = analyze_frame({"sidewalk": [sw2], "tree_zone": [tz]}, (H, W))
-    assert fa.ratio == pytest.approx(0.6, abs=0.02)
+    assert fa.ratio == pytest.approx(0.58, abs=0.03)
 
 
 def test_legal_width_aux():

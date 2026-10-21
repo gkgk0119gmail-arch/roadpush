@@ -10,7 +10,10 @@
     blocked  : corridor 안의 O 픽셀 수
     ratio    : free / span                        … 유효보행폭 비율 (0~1)
 
-프레임 값은 하단 여러 스캔라인의 중앙값. 보도가 거의 안 보이면 sidewalk_present=False.
+프레임 값은 **병목**: 하단 스캔라인 중 비율이 가장 낮은 2줄의 평균(1줄 노이즈 완화).
+장애물이 일부 줄에만 걸려도 반영되게 중앙값 대신 병목을 쓴다(명동 실사진에서 중앙값은 노점·입간판을 희석).
+장애물은 행마다 좌우로 gap 만큼 넓혀(통과 여유) 세그 마스크 경계의 몇 px 틈 때문에 보도와 분리되는 것을 막는다.
+보도가 거의 안 보이면 sidewalk_present=False.
 
 절대폭(보조 지표, 1.2 m 법정 유효폭 비교용) — metric_width():
     평지·직선·폭 일정한 보도를 카메라 롤 0 으로 보면 행 y 의 보도 폭(px)은 span(y) = a·(y − y_h) (y_h: 지평선).
@@ -115,9 +118,11 @@ def obstacles_on_sidewalk(sidewalk: Mask, instances: Iterable[Mask], dilate_px: 
 # ---------------------------------------------------------------- 핵심
 
 def row_ratio(sidewalk_row: np.ndarray, obstacle_row: np.ndarray, y: int = 0,
-              min_sidewalk_px: int = 40) -> RowResult | None:
+              min_sidewalk_px: int = 40, gap_px: int = 0) -> RowResult | None:
     S = np.asarray(sidewalk_row, dtype=bool)
     O = np.asarray(obstacle_row, dtype=bool)
+    if gap_px > 0 and O.any():   # 장애물 좌우 통과 여유 + 마스크 경계 틈 메우기
+        O = np.convolve(O.astype(np.uint8), np.ones(2 * gap_px + 1, np.uint8), mode="same") > 0
     best = None
     best_key = (-1, -1)
     for a, b in runs(S | O):
@@ -169,7 +174,8 @@ def metric_width(rows: Sequence[RowResult], img_w: int, cam_h: float = 1.3, min_
 
 
 def frame_ratio(sidewalk: Mask, obstacle: Mask, rows: Sequence[int] | None = None,
-                min_sidewalk_px: int = 40, min_valid_fraction: float = 0.5, cam_h: float = 1.3) -> FrameResult:
+                min_sidewalk_px: int = 40, min_valid_fraction: float = 0.5, cam_h: float = 1.3,
+                gap_frac: float = 0.01, bottleneck_k: int = 2) -> FrameResult:
     """프레임 하나의 유효보행폭 비율.
 
     sidewalk : 걸을 수 있는 면(sidewalk ∪ braille) 마스크
@@ -179,12 +185,14 @@ def frame_ratio(sidewalk: Mask, obstacle: Mask, rows: Sequence[int] | None = Non
     H = sidewalk.shape[0]
     rows = list(rows) if rows is not None else default_rows(H)
     results: list[RowResult] = []
+    gap = int(round(gap_frac * sidewalk.shape[1]))
     for y in rows:
-        r = row_ratio(sidewalk[y], obstacle[y], y=y, min_sidewalk_px=min_sidewalk_px)
+        r = row_ratio(sidewalk[y], obstacle[y], y=y, min_sidewalk_px=min_sidewalk_px, gap_px=gap)
         if r is not None:
             results.append(r)
     if len(results) < max(1, int(np.ceil(min_valid_fraction * len(rows)))):
         return FrameResult(0.0, 0.0, False, results, len(rows))
     ratios = np.array([r.ratio for r in results])
     mw = metric_width(results, sidewalk.shape[1], cam_h)
-    return FrameResult(float(np.median(ratios)), float(ratios.min()), True, results, len(rows), mw)
+    bottleneck = float(np.sort(ratios)[:bottleneck_k].mean())
+    return FrameResult(bottleneck, float(ratios.min()), True, results, len(rows), mw)

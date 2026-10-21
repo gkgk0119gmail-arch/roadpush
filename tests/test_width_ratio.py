@@ -43,16 +43,27 @@ def test_row_ratio_none_when_too_little_sidewalk():
     assert row_ratio(S, np.zeros(200, dtype=bool), min_sidewalk_px=40) is None
 
 
-def test_frame_ratio_median_and_presence():
+def test_frame_ratio_presence_and_clearance():
     sw = _canvas(); ob = _canvas()
     sw[50:100, 50:150] = True
     ob[60:100, 90:110] = True
     sw[60:100, 90:110] = False
-    res = frame_ratio(sw, ob)
-    assert res.sidewalk_present
-    assert res.ratio == pytest.approx(0.4)
-    assert res.min_ratio == pytest.approx(0.4)
+    assert frame_ratio(sw, ob, gap_frac=0).ratio == pytest.approx(0.4)
+    res = frame_ratio(sw, ob)               # 기본: 화면 폭 1%(2px) 통과 여유
+    assert res.sidewalk_present and res.ratio == pytest.approx(0.38)
     assert res.valid_fraction == 1.0
+
+
+def test_bottleneck_and_gap_bridging():
+    sw = _canvas(); ob = _canvas()
+    sw[50:100, 50:150] = True
+    ob[85:92, 50:100] = True; sw[85:92, 50:100] = False     # 2줄 높이에만 걸친 장애물(왼쪽 절반)
+    assert frame_ratio(sw, ob, gap_frac=0).ratio < 0.6      # 중앙값이면 1.0 → 병목으로 반영
+    sw2 = _canvas(); ob2 = _canvas()
+    sw2[50:100, 60:150] = True
+    ob2[50:100, 40:57] = True                               # 보도와 3px 틈을 둔 노점
+    assert frame_ratio(sw2, ob2, gap_frac=0).ratio == pytest.approx(1.0)
+    assert frame_ratio(sw2, ob2, gap_frac=0.02).ratio < 0.85  # 틈 메움 → 협소로 반영
 
 
 def test_frame_ratio_no_sidewalk():
