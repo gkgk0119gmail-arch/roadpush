@@ -57,7 +57,20 @@ Polygon valid **200장**(폴더 고루 샘플), GT 면적 ≥ 1500 px² 객체�
 | A안 obstacle (Medium) **최종** (10 ep) | polygon_v1 | **Polygon valid 전체 1,566장**, 장애물 11종 | mIoU **0.736** (car 0.909 · person 0.873 · truck_bus 0.797 · two_wheeler 0.777 · pole 0.769 · bollard 0.752 · movable_signage 0.648 · potted_plant 0.637 · barricade 0.614 · other_moving 0.584) |
 | (공정 비교) 같은 모델 | polygon_v1 | teacher 비교와 같은 150장, 프롬프트 9종 | mIoU **0.701** vs SAM 3 0.518 · GDINO+SAM2 0.373 |
 | B안 unified (Medium) ep1 (중간) | unified_v1 (GT 12만 + SAM 3 보강 14만) | 같은 150장 | 면 mIoU 0.597 · 비율 MAE 0.019 · 소멸 F1 0.881 · 장애물 mIoU 0.574 (A안 최종: 0.742 · 0.038 · 0.886 · 0.680) |
-| B안 unified (Medium) 최종 | unified_v1 | 전체 valid | (학습 중, ~02:00) |
+| B안 unified (Medium) **최종** | unified_v1 | 전체 valid (면 954 · 장애물 1,566) | 면 mIoU 0.640 · 비율 MAE 0.0186 · 소멸 F1 0.913 · 장애물 mIoU 0.706 |
+
+### 3-3. A안(전문 모델 2개) vs B안(SAM 3 보강 통합 1개)
+
+| | A안 | B안 |
+|---|---|---|
+| 면 mIoU / 비율 MAE / 소멸 F1 | **0.670 / 0.0168 / 0.915** | 0.640 / 0.0186 / 0.913 |
+| 장애물 mIoU | **0.736** | 0.706 |
+| B 가 나은 클래스 | | alley 0.839(+0.02) · stairs 0.224(+0.05) · manhole 0.795 · barricade 0.671(+0.06) · car 0.915 |
+| B 가 크게 못한 클래스 | | repair_zone 0.171(−0.31) · other_moving 0.444(−0.14) |
+| 모델 수·브라우저 다운로드·추론 시간 | 2개 · 277 MB · 1× | **1개 · 138 MB · 2× 빠름** |
+
+- SAM 3 의사 라벨(14만 개)로 결측을 채운 단일 모델은 정확도 −3점 대신 비용 절반. 우려했던 alley(프롬프트에 없음)는 오히려 상승.
+- 결론: 대시보드 사전 분석 = A안. 브라우저 사진 분석에는 B안(가벼움) 검토.
 
 ### 3-1. zero-shot vs 파인튜닝 (면, Surface valid 동일 150장)
 
