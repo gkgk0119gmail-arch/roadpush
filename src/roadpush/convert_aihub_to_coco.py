@@ -188,6 +188,8 @@ def main(argv: list[str] | None = None) -> None:
     ap.add_argument("--img-root", required=True, type=Path)
     ap.add_argument("--out", type=Path, default=Path("data/coco/aihub_v1"))
     ap.add_argument("--val-ratio", type=float, default=0.1)
+    ap.add_argument("--split-by", choices=["xml", "image"], default="xml",
+                    help="xml: XML(=연속 촬영 폴더) 단위 분할. 인접 프레임이 train/valid 로 새는 것 방지")
     ap.add_argument("--include-boxes", action="store_true", help="<box>를 사각 폴리곤으로 포함")
     ap.add_argument("--link", choices=["symlink", "copy", "none"], default="symlink")
     ap.add_argument("--max-images", type=int, default=0, help="디버그용 상한(0=전체)")
@@ -231,7 +233,8 @@ def main(argv: list[str] | None = None) -> None:
 
     by_split: dict[str, list[ImageRecord]] = {"train": [], "valid": []}
     for r in records:
-        by_split[stable_split(Path(r.name).name, args.val_ratio)].append(r)
+        key = Path(r.xml_path).stem if args.split_by == "xml" else Path(r.name).name
+        by_split[stable_split(key, args.val_ratio)].append(r)
 
     for split, recs in by_split.items():
         coco, missing = to_coco(recs, img_index)
