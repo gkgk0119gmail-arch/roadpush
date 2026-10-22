@@ -258,7 +258,14 @@ def fig_push(session: Path, links: Path, out: Path, min_frac: float = 0.3) -> di
             return False
         a = np.asarray(Image.open(session / "overlay" / f).convert("RGB")).astype(int)
         red = ((a[..., 0] > 160) & (a[..., 0] - a[..., 1] > 60) & (a[..., 0] - a[..., 2] > 25)).mean()   # 반투명 섞인 분홍 포함
-        return red < 0.25   # 유리창 등 어두운 부분은 빨강으로 안 잡혀 보수적으로
+        return red < 0.2   # 유리창 등 어두운 부분은 빨강으로 안 잡혀 보수적으로
+
+    def sharpness(f) -> float:
+        """라플라시안 분산: 흔들린 사진을 갤러리에서 빼기 위함."""
+        from PIL import ImageFilter
+        g = Image.open(session / "frames" / f if (session / "frames" / f).exists() else session / "overlay" / f).convert("L")
+        g = g.resize((640, round(g.height * 640 / g.width)))
+        return float(np.asarray(g.filter(ImageFilter.FIND_EDGES), dtype=float).var())
 
     # 갤러리: 유형별로 고르게, 서로 다른 도로명
     picks, seen = [], set()
@@ -270,8 +277,10 @@ def fig_push(session: Path, links: Path, out: Path, min_frac: float = 0.3) -> di
                 continue
             fs = [f for f in by[L.link_id] if kind.get(f) == want and (session / "overlay" / f).exists()
                   and good_view(f)]
+            fs = [(sharpness(f), f) for f in fs]
+            fs = [f for s, f in sorted(fs, reverse=True) if s >= 600]   # 선명한 순(하위 25% 흐린 사진 제외)
             if fs:
-                f = sorted(fs, key=lambda x: rs[x]["ratio"])[len(fs) // 2]
+                f = fs[0]
                 picks.append((L, f, want)); seen.add(nm)
                 break
         if len(picks) >= 8:
