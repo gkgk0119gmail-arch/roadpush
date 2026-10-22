@@ -53,7 +53,7 @@ def main(argv: list[str] | None = None) -> None:
     <tr><td>RF-DETR-Seg Medium ×2 (Apache 2.0)</td><td>보도면·장애물 분할 (배포·브라우저 추론)</td><td>유효보행폭 비율 오차 0.017 · 보도 소멸 F1 0.915 · 장애물 mIoU 0.755</td></tr>
     <tr><td>SAM 3 (teacher)</td><td>결측 라벨 보강·zero-shot 비교</td><td>같은 150장 비율 오차 0.109 (파인튜닝 0.038)</td></tr>
     <tr><td>Qwen3-VL-8B (Apache 2.0)</td><td>점검 메모·닫힌 질문 교차검증</td><td>단독 판정 정확도 0.895 (차량 오경보 29% → 분할과 교차검증)</td></tr></table>
-    {img(fig / "fig_compare.png")}
+    {img(fig / "fig_compare_wide.png")}
 
     <div class="pb"></div>
     <h2>4. 샘플 결과물 — 걷는 사람이 차도로 밀려나는 구간</h2>

@@ -38,7 +38,7 @@ def _font() -> None:
                          "axes.spines.top": False, "axes.spines.right": False, "axes.unicode_minus": False})
 
 
-def fig_compare(out: Path) -> None:
+def fig_compare(out: Path, tall: bool = True) -> None:
     ev = ROOT / "outputs"
     rows = [("SAM 3 (zero-shot)", ev / "teachers/eval_sam3_surface_v2.json"),
             ("Grounding DINO+SAM 2 (zero-shot)", ev / "teachers/eval_gdino_surface_v2.json"),
@@ -47,7 +47,8 @@ def fig_compare(out: Path) -> None:
     metrics = [("유효보행폭 비율 오차 (병목 MAE, 낮을수록 좋음)", "ratio_mae", "{:.3f}"),
                ("보도 IoU (높을수록 좋음)", None, "{:.2f}"),
                ("보도 소멸 판정 F1 (높을수록 좋음)", "vanish_f1", "{:.2f}")]
-    fig, axes = plt.subplots(1, 3, figsize=(15, 3.6))
+    # README(본문 폭 ~880px)용은 세로 3단·큰 글씨, 보고서 PPT 용은 가로 3칸
+    fig, axes = plt.subplots(3, 1, figsize=(9, 9.5)) if tall else plt.subplots(1, 3, figsize=(15, 3.6))
     for ax, (title, key, fmt) in zip(axes, metrics):
         vals = [d["iou"]["sidewalk"] if key is None else d[key] for _, d in data]
         names = [n for n, _ in data]
@@ -55,15 +56,15 @@ def fig_compare(out: Path) -> None:
         y = range(len(names))[::-1]
         ax.barh(list(y), vals, color=colors, height=0.55, edgecolor=SURFACE, linewidth=2)
         for yi, v in zip(y, vals):
-            ax.text(v, yi, " " + fmt.format(v), va="center", color=INK, fontsize=11)
-        ax.set_yticks(list(y), names if ax is axes[0] else [""] * len(names), fontsize=10)
-        ax.set_title(title, loc="left", fontsize=12, color=INK)
+            ax.text(v, yi, " " + fmt.format(v), va="center", color=INK, fontsize=15)
+        ax.set_yticks(list(y), names, fontsize=13)
+        ax.set_title(title, loc="left", fontsize=16, color=INK)
         ax.xaxis.grid(True, color=GRID, linewidth=0.8)
         ax.set_axisbelow(True)
         ax.set_xlim(0, max(vals) * 1.25)
-    fig.text(0.01, -0.04, "AI Hub 인도보행 영상 검증셋(폴더 단위 분리) 동일 150장 기준", color=INK2, fontsize=9)
+    fig.text(0.01, -0.02, "AI Hub 인도보행 영상 검증셋(폴더 단위 분리) 동일 150장 기준", color=INK2, fontsize=12)
     fig.tight_layout()
-    fig.savefig(out / "fig_compare.png", dpi=200, bbox_inches="tight")
+    fig.savefig(out / ("fig_compare.png" if tall else "fig_compare_wide.png"), dpi=200, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -126,7 +127,7 @@ def fig_pipeline(out: Path) -> None:
              ("유효보행폭 비율", "스캔라인 병목\n보행자 제외·통과 여유"),
              ("링크 위험도", "0~100 · 4+1 단절 유형\n보차 혼용 판정"),
              ("담당자 대시보드", "지도 · 우선순위 · 전후 비교\nQwen3-VL 점검 메모(사전 생성)")]
-    fig, ax = plt.subplots(figsize=(16, 4.2))
+    fig, ax = plt.subplots(figsize=(12.5, 4.2))   # 좌표계는 그대로 두고 그림 폭만 줄여 글씨를 상대적으로 크게
     ax.set_xlim(0, 16); ax.set_ylim(0, 4.2); ax.set_axis_off()
     w, h, y = 2.6, 1.5, 2.3
     xs = [0.2 + i * 3.18 for i in range(len(steps))]
@@ -244,8 +245,8 @@ def fig_push(session: Path, links: Path, out: Path, min_frac: float = 0.3) -> di
                                  label=f"차도로 밀려나는 링크 ({len(push)}개 · {push.length_m.sum() / 1000:.1f} km)")
     ax.set_axis_off()
     ax.set_xlim(b[0] - 150, b[2] + 150); ax.set_ylim(b[1] - 150, b[3] + 150)
-    ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0), frameon=False, fontsize=11)
-    fig.suptitle("걷는 사람이 차도로 밀려나는 구간 — 서울 도심(중구·종로)", x=0.02, ha="left", fontsize=14)
+    ax.legend(loc="lower left", frameon=True, facecolor=SURFACE, edgecolor=GRID, fontsize=14)
+    fig.suptitle("걷는 사람이 차도로 밀려나는 구간 — 서울 도심(중구·종로)", x=0.02, ha="left", fontsize=17)
     fig.text(0.02, 0.02, "링크 프레임 중 30% 이상이 보도 소멸·차량 점유·심한 협소(비율<0.3) · 지도 © OpenStreetMap", color=INK2, fontsize=8)
     fig.savefig(out / "fig_push_map.png", dpi=180, bbox_inches="tight")
     plt.close(fig)
@@ -275,18 +276,23 @@ def fig_push(session: Path, links: Path, out: Path, min_frac: float = 0.3) -> di
                 break
         if len(picks) >= 8:
             break
-    if picks:
-        fig, axes = plt.subplots(2, 4, figsize=(20, 8.6))
-        for ax, (L, f, want) in zip(axes.ravel(), picks):
+    def grid(items, path, ncol, size, fs):
+        nrow = (len(items) + ncol - 1) // ncol
+        fig, axes = plt.subplots(nrow, ncol, figsize=size, layout="constrained")   # 제목·사진 겹침 방지
+        for ax, (L, f, want) in zip(np.atleast_1d(axes).ravel(), items):
             ax.imshow(Image.open(session / "overlay" / f))
             ax.set_title(f"{L['name'] or '이름 없음'} · {want}\n링크 점수 {L.score:.0f} ({L.grade}) · 밀려남 {L.push:.0%}",
-                         loc="left", fontsize=11)
+                         loc="left", fontsize=fs)
             ax.set_axis_off()
-        for ax in axes.ravel()[len(picks):]:
+        for ax in np.atleast_1d(axes).ravel()[len(items):]:
             ax.set_axis_off()
-        fig.tight_layout()
-        fig.savefig(out / "fig_push_gallery.png", dpi=150, bbox_inches="tight")
+        fig.savefig(path, dpi=130, bbox_inches="tight")
         plt.close(fig)
+
+    if picks:
+        grid(picks, out / "fig_push_gallery.png", 4, (20, 8.6), 11)            # 보고서 PPT 용(가로 넓게)
+        grid(picks[:4], out / "fig_push_gallery_a.png", 2, (12, 9.6), 15)       # README 용(2x2, 큰 글씨)
+        grid(picks[4:8], out / "fig_push_gallery_b.png", 2, (12, 9.6), 15)
     stats = {"links": int(len(push)), "km": round(float(push.length_m.sum() / 1000), 1), "measured": int(len(g)),
              "measured_km": round(float(g.length_m.sum() / 1000), 1),
              "grades": {k: int((g.grade == k).sum()) for k in ("위험", "주의", "안전")},
@@ -304,6 +310,7 @@ def main(argv: list[str] | None = None) -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     _font()
     fig_compare(args.out)
+    fig_compare(args.out, tall=False)
     fig_pipeline(args.out)
     fig_training(args.out)
     if (args.session / "links_scored.geojson").exists():

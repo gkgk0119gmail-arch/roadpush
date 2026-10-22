@@ -21,6 +21,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parent.parent
 FONT = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
 W, H = 1280, 720
+SLOW = 1.45   # 자막·장면 유지 배율 (2분 32초 → 약 3분 30초, 사용자 피드백 "조금 빠름")
 
 
 def font(sz):
@@ -86,7 +87,7 @@ async def record(url: str, vdir: Path) -> list[tuple[float, float, str]]:
 
         async def say(text, secs):
             a = now()
-            await pg.wait_for_timeout(int(secs * 1000))
+            await pg.wait_for_timeout(int(secs * SLOW * 1000))
             subs.append((a, now(), text))
 
         await pg.goto(url)
@@ -168,7 +169,7 @@ def main(argv: list[str] | None = None) -> None:
         card([(f"서울 도심 {st['measured']}개 구간 · {st['measured_km']} km 측정", 34, (255, 255, 255)),
               (f"그중 {st['links']}개 · {st['km']} km에서 걷는 사람이 차도로 밀려납니다", 30, (255, 150, 150))],
              t / "c4.png", img=fig / "fig_push_map.png")
-        for i, s in enumerate((5, 7, 7, 7), start=1):
+        for i, s in enumerate((7, 10, 10, 10), start=1):
             still(t / f"c{i}.png", s, t / f"c{i}.mp4")
         # 2. 웹앱 녹화 + 자막
         vdir = t / "v"
@@ -181,8 +182,9 @@ def main(argv: list[str] | None = None) -> None:
         pv = ROOT / "outputs/video/preview_mly_junggu_2025.mp4"
         parts = [t / f"c{i}.mp4" for i in (1, 2, 3, 4)] + [t / "app.mp4"]
         if pv.exists():
-            subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-ss", "8", "-t", "20", "-i", str(pv), "-vf",
-                            f"scale={W}:{H},fps=30,format=yuv420p", "-c:v", "libx264", "-crf", "20", str(t / "walk.mp4")], check=True)
+            subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-ss", "8", "-t", "18", "-i", str(pv), "-vf",
+                            f"setpts=1.33*PTS,scale={W}:{H},fps=30,format=yuv420p", "-c:v", "libx264", "-crf", "20",
+                            str(t / "walk.mp4")], check=True)
             parts.append(t / "walk.mp4")
         # 4. 성과·출처
         card([("성과", 40, (255, 255, 255)),
@@ -193,8 +195,8 @@ def main(argv: list[str] | None = None) -> None:
               ("데이터: AI Hub 인도보행 영상 · 거리 사진 © Mapillary contributors (CC BY-SA 4.0)", 20, (170, 170, 170)),
               ("지도 © OpenStreetMap contributors (ODbL) · 모델 RF-DETR-Seg (Apache 2.0) · Qwen3-VL", 20, (170, 170, 170)),
               ("github.com/gkgk0119gmail-arch/roadpush", 22, (150, 190, 255))], t / "c6.png")
-        still(t / "c5.png", 7, t / "c5.mp4")
-        still(t / "c6.png", 6, t / "c6.mp4")
+        still(t / "c5.png", 10, t / "c5.mp4")
+        still(t / "c6.png", 8, t / "c6.mp4")
         parts += [t / "c5.mp4", t / "c6.mp4"]
         (t / "list.txt").write_text("".join(f"file '{p}'\n" for p in parts))
         args.out.parent.mkdir(parents=True, exist_ok=True)

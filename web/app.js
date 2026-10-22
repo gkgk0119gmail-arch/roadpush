@@ -167,4 +167,10 @@ async function runUpload(src) {
   }
 }
 
-init().catch((e) => { $("#stats").innerHTML = `<p>데이터를 불러오지 못했습니다: ${esc(e.message)}</p>`; });
+init().catch((e) => {
+  // 비공개 HF Space 는 Safari·iOS 가 교차 사이트 쿠키를 막아 데이터 파일을 못 받는다(앱 오류 아님)
+  $("#stats").innerHTML = `<div class="warn" style="grid-column:1/-1;font-size:15px;padding:14px">
+    <b>분석 데이터를 불러오지 못했습니다.</b><br>
+    비공개 상태의 Hugging Face Space 는 Safari·iOS 에서 열리지 않습니다 — Chrome·Edge 로 열거나, 공개 전환 후 이용해 주세요.
+    <div class="muted small">(${esc(e.message)})</div></div>`;
+});

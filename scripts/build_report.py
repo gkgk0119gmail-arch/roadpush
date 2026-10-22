@@ -149,7 +149,7 @@ def build(out: Path) -> Path:
     text(s3, 3.5, 31.3, 30.5, 5, [
         ("차별점: '단절'은 객체가 아니라 공간 관계 → 객체 검출을 넘어 기하 후처리로 통과 폭을 정량화. "
          "파운데이션 모델(SAM 3)은 라벨링 teacher로만, 배포는 CPU에서 도는 경량 모델.", 16, False, INK2)])
-    picture(s3, FIG / "fig_compare.png", 35.0, 6.0, w=30.0)
+    picture(s3, FIG / "fig_compare_wide.png", 35.0, 6.0, w=30.0)
     picture(s3, FIG / "fig_push_gallery.png", 35.0, 15.5, w=30.0)
 
     # ---- p4 애로점 / 기대효과

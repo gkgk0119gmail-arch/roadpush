@@ -86,8 +86,8 @@ def main(argv: list[str] | None = None) -> None:
                         "-map", "[v]", "-c:v", "libx264", "-crf", "23", "-pix_fmt", "yuv420p", str(mp4)], check=True)
         # GIF: 프레임 고르게 솎아 gif-seconds 분량, 폭 640
         step = max(1, n // (args.gif_seconds * 4))
-        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-framerate", "4", "-i", str(t / "f_%05d.jpg"),
-                        "-vf", f"select='not(mod(n\\,{step}))',setpts=N/4/TB,scale=640:-1:flags=lanczos,"
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-framerate", "3", "-i", str(t / "f_%05d.jpg"),
+                        "-vf", f"select='not(mod(n\\,{step}))',setpts=N/3/TB,scale=720:-1:flags=lanczos,"
                                "split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse=dither=bayer",
                         "-t", str(args.gif_seconds), "-loop", "0", str(gif)], check=True)
     print(f"frames={n} → {mp4} ({mp4.stat().st_size / 2**20:.1f} MB), {gif} ({gif.stat().st_size / 2**20:.1f} MB)")
