@@ -5,7 +5,7 @@
 
 | | |
 |---|---|
-| **웹앱(테스트 URL)** | https://huggingface.co/spaces/YunSangNam/roadpush — 서버 없는 정적 웹앱, 사진 분석은 브라우저 안에서 실행 *(제출 전까지 비공개 · 비공개 상태에선 Chrome/Edge 로)* |
+| **웹앱(테스트 URL)** | https://huggingface.co/spaces/YunSangNam/roadpush — 서버 없는 정적 웹앱, 사진 분석은 브라우저 안에서 실행 · 공개, 로그인 없이 모든 브라우저(Safari·모바일 포함) |
 | **데모 영상 (3분 25초)** | [docs/media/RoadPush_demo.mp4](docs/media/RoadPush_demo.mp4) |
 | **대상** | 서울 도심(중구·종로) 공개 거리 사진 7,559장(360° 변환 포함)의 실제 촬영 위치 · **464개 링크 · 28.3 km** |
 | **사용자** | 지자체·도로관리기관 보도 담당자 — 어디부터 단속·정비할지 우선순위 |

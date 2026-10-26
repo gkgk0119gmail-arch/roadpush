@@ -2,6 +2,12 @@
 
 자율 개발 루프(10분 체크) 기록. 최신이 위.
 
+## 2026-10-27 (D6): 웹앱·GitHub 공개 (사용자 승인)
+
+- 공개 전 Git 이력 전체에서 토큰·키 노출 없음 확인(HF·AI Hub·Mapillary 키 0건, 모두 gitignore).
+- HF Space `YunSangNam/roadpush` 공개 전환(RUNNING, 로그인 없이 200), GitHub 저장소 공개 전환.
+- README·submission.md 비공개 문구 갱신. 남은 사용자 작업: 참가신청서 서명, 아이디어 번호 KEIT 확인, 10/30 메일 발송.
+
 ## 2026-10-22 (D1) 22시: README 지도 스크린샷·갤러리 선명도 (사용자 요청)
 
 - 사용자 스크린샷 2장(도심 전체·종로3가~세운상가 확대) → `docs/media/web_map_wide.jpg`(README 상단 대표 그림), `web_map_zoom.jpg`(웹앱 절, 골목 단위 설명).

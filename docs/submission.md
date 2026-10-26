@@ -9,14 +9,14 @@
 |---|---|---|---|
 | 필수 | 성과보고서 (양식 준수, PPT 4p) | `RoadPush_성과보고서.pptx` + `.pdf` | ✅ |
 | 필수 | 참가신청서 (전원 개인정보, 대표자 서명) | 양식: `docs/templates/성과보고서_양식_Word.docx` 2쪽 또는 KEIT 공지 첨부 | ⏳ **사용자 작성·서명** |
-| 필수 | 테스트 URL | https://huggingface.co/spaces/YunSangNam/roadpush | ⏳ **제출 전 공개 전환(사용자 승인)** |
+| 필수 | 테스트 URL | https://huggingface.co/spaces/YunSangNam/roadpush | ✅ 공개 (10/27) |
 | 필수 | 데모 영상 2~5분 | `RoadPush_demo.mp4` (3분 25초, 16 MB) | ✅ |
-| 선택 | GitHub | https://github.com/gkgk0119gmail-arch/roadpush | ⏳ 공개 여부 결정 |
+| 선택 | GitHub | https://github.com/gkgk0119gmail-arch/roadpush | ✅ 공개 (10/27) |
 | 선택 | 데이터셋 요약·샘플 결과물 | `RoadPush_데이터셋요약.pdf` (2쪽) | ✅ |
 
 확인할 것
 - [ ] 아이디어 번호 표기: 후보작 목록에 번호 없음 → KEIT(053-718-8386, sglim@keit.re.kr) 문의. 회신 전까지 "RoadPush (아이디어 챌린지 수상 후보작)"
-- [ ] HF Space 를 **로그아웃 상태 브라우저**에서 열어 지도·사진 분석 동작 확인 (공개 전환 후)
+- [x] HF Space 로그인 없이 접속 확인 (10/27, 익명 요청 200)
 - [ ] 첨부 총용량: 메일 첨부 한도 초과 시 영상은 링크(GitHub 또는 유튜브 일부공개)로
 - [ ] 보고서 수치 = `docs/results.md` 최종값 일치
 
