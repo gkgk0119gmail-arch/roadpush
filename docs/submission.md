@@ -7,12 +7,12 @@
 
 | 구분 | 항목 | 파일·링크 | 상태 |
 |---|---|---|---|
-| 필수 | 성과보고서 (양식 준수, PPT 4p) | `RoadPush_성과보고서.pptx` + `.pdf` | ✅ |
+| 필수 | 성과보고서 (양식 준수, PPT 5p: 탐구참여인력·문제정의·AI 접근방법·결과 해석·한계 및 개선방안) | `RoadPush_성과보고서.pptx` + `.pdf` | ✅ |
 | 필수 | 참가신청서 (전원 개인정보, 대표자 서명) | 양식: `docs/templates/성과보고서_양식_Word.docx` 2쪽 또는 KEIT 공지 첨부 | ⏳ **사용자 작성·서명** |
 | 필수 | 테스트 URL | https://huggingface.co/spaces/YunSangNam/roadpush | ✅ 공개 (10/27) |
 | 필수 | 데모 영상 2~5분 | `RoadPush_demo.mp4` (3분 25초, 16 MB) | ✅ |
 | 선택 | GitHub | https://github.com/gkgk0119gmail-arch/roadpush | ✅ 공개 (10/27) |
-| 선택 | 데이터셋 요약·샘플 결과물 | `RoadPush_데이터셋요약.pdf` (2쪽) | ✅ |
+| 선택 | 데이터셋 요약·샘플 결과물 | `RoadPush_데이터셋요약.pdf` (2쪽, 편집용 `.docx` 동봉) | ✅ |
 
 확인할 것
 - [ ] 아이디어 번호 표기: 후보작 목록에 번호 없음 → KEIT(053-718-8386, sglim@keit.re.kr) 문의. 회신 전까지 "RoadPush (아이디어 챌린지 수상 후보작)"

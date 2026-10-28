@@ -119,39 +119,74 @@ def fig_frames(session: Path, out: Path) -> None:
 
 
 def fig_pipeline(out: Path) -> None:
-    """파이프라인 도식: 주 흐름(가로) + teacher(점선, 학습 시에만)."""
+    """파이프라인 도식: 운영 흐름(위, 가로) + 학습 단계(아래, 점선). 축 1단위 = 1인치라 글자 크기가 상자와 같이 커진다."""
     from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
-    steps = [("보행 촬영 영상\n+ GPS", "폰·공개 거리사진"),
-             ("RF-DETR-Seg", "보도면 9종 · 장애물 11종\n픽셀 분할 (CPU 가능)"),
-             ("유효보행폭 비율", "스캔라인 병목\n보행자 제외·통과 여유"),
-             ("링크 위험도", "0~100 · 4+1 단절 유형\n보차 혼용 판정"),
-             ("담당자 대시보드", "지도 · 우선순위 · 전후 비교\nQwen3-VL 점검 메모(사전 생성)")]
-    fig, ax = plt.subplots(figsize=(12.5, 4.2))   # 좌표계는 그대로 두고 그림 폭만 줄여 글씨를 상대적으로 크게
-    ax.set_xlim(0, 16); ax.set_ylim(0, 4.2); ax.set_axis_off()
-    w, h, y = 2.6, 1.5, 2.3
-    xs = [0.2 + i * 3.18 for i in range(len(steps))]
+    steps = [("거리 사진 + GPS", "폰 촬영 · 공개 거리사진"),
+             ("RF-DETR-Seg", "보도면 9종 · 장애물 11종\n픽셀 단위 분할"),
+             ("유효보행폭 비율", "가로줄별 통과 폭 ÷ 보도 폭\n가장 좁은 곳(병목)"),
+             ("링크 위험도", "0~100점 · 단절 유형\n보차 혼용 판정"),
+             ("담당자 웹앱", "지도 · 조치 우선순위\nAI 점검 메모")]
+    W, H = 16.0, 5.0
+    fig = plt.figure(figsize=(W, H))
+    ax = fig.add_axes([0, 0, 1, 1]); ax.set_xlim(0, W); ax.set_ylim(0, H); ax.set_axis_off()
+    w, h, y, gap = 2.75, 1.55, 3.0, 0.45
+    xs = [0.2 + i * (w + gap) for i in range(len(steps))]
     for i, (x, (t, sub)) in enumerate(zip(xs, steps)):
         core = i in (1, 2)
-        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.02,rounding_size=0.15",
-                                    fc=EMPH if core else "#eef3fb", ec=EMPH, lw=1.5))
-        ax.text(x + w / 2, y + h * 0.68, t, ha="center", va="center", fontsize=14,
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0,rounding_size=0.14",
+                                    fc=EMPH if core else "#eef3fb", ec=EMPH, lw=1.6))
+        ax.text(x + w / 2, y + h - 0.42, t, ha="center", va="center", fontsize=16,
                 color="white" if core else INK, weight="bold")
-        ax.text(x + w / 2, y + h * 0.28, sub, ha="center", va="center", fontsize=10,
+        ax.text(x + w / 2, y + 0.5, sub, ha="center", va="center", fontsize=11.5, linespacing=1.35,
                 color="white" if core else INK2)
         if i < len(steps) - 1:
-            ax.add_patch(FancyArrowPatch((x + w + 0.03, y + h / 2), (xs[i + 1] - 0.03, y + h / 2),
-                                         arrowstyle="-|>", mutation_scale=18, color=INK2, lw=1.5))
-    # teacher (학습 단계)
-    tx = xs[1]
-    ax.add_patch(FancyBboxPatch((tx - 0.1, 0.25), w + 0.2, 1.15, boxstyle="round,pad=0.02,rounding_size=0.15",
-                                fc=SURFACE, ec=INK2, lw=1.2, ls="--"))
-    ax.text(tx + w / 2, 0.98, "SAM 3 (teacher, 학습 단계)", ha="center", fontsize=11, color=INK, weight="bold")
-    ax.text(tx + w / 2, 0.55, "결측 라벨 보강 · zero-shot 비교\n배포물 미포함", ha="center", va="center", fontsize=9, color=INK2)
-    ax.add_patch(FancyArrowPatch((tx + w / 2, 1.42), (tx + w / 2, y - 0.03), arrowstyle="-|>", mutation_scale=14,
-                                 color=INK2, lw=1.2, ls="--"))
-    ax.text(xs[0] + w / 2, 0.82, "학습 데이터\nAI Hub 인도보행 영상\n보도면 9.5천 · 장애물 1.5만 장", ha="center", fontsize=10, color=INK2, va="center")
-    fig.savefig(out / "fig_pipeline.png", dpi=200, bbox_inches="tight")
+            ax.add_patch(FancyArrowPatch((x + w + 0.04, y + h / 2), (xs[i + 1] - 0.04, y + h / 2),
+                                         arrowstyle="-|>", mutation_scale=20, color=INK2, lw=1.6))
+    ax.text(0.2, y + h + 0.22, "운영 — 브라우저 안에서 실행", fontsize=12, color=INK2, va="bottom")
+    # 학습 단계(오프라인)
+    ty, th = 0.35, 1.45
+    learn = [(xs[0], "AI Hub 인도보행 영상", "보도면 9.6천 · 장애물 1.5만 장\n촬영 폴더 단위 분할"),
+             (xs[1] - 0.2 + w + gap, "SAM 3 (teacher)", "빠진 라벨 보강 · zero-shot 비교\n배포물에는 넣지 않음")]
+    for x, t, sub in learn:
+        bw = w + 0.4 if t.startswith("SAM") else w
+        ax.add_patch(FancyBboxPatch((x, ty), bw, th, boxstyle="round,pad=0,rounding_size=0.14",
+                                    fc=SURFACE, ec=INK2, lw=1.3, ls="--"))
+        ax.text(x + bw / 2, ty + th - 0.38, t, ha="center", va="center", fontsize=14, color=INK, weight="bold")
+        ax.text(x + bw / 2, ty + 0.45, sub, ha="center", va="center", fontsize=11, linespacing=1.35, color=INK2)
+    cx = xs[1] + w / 2
+    ax.add_patch(FancyArrowPatch((xs[0] + w + 0.04, ty + th / 2 + 0.25), (cx - 0.25, y - 0.04),
+                                 arrowstyle="-|>", mutation_scale=16, color=INK2, lw=1.3, ls="--"))
+    ax.add_patch(FancyArrowPatch((learn[1][0] + 0.6, ty + th + 0.04), (cx + 0.25, y - 0.04),
+                                 arrowstyle="-|>", mutation_scale=16, color=INK2, lw=1.3, ls="--"))
+    ax.text(cx + 0.3, (ty + th + y) / 2, "학습", fontsize=11, color=INK2, va="center")
+    ax.text(0.2, ty - 0.05, "학습 — 오프라인(RTX 3090)", fontsize=12, color=INK2, va="top")
+    fig.savefig(out / "fig_pipeline.png", dpi=200, bbox_inches="tight", pad_inches=0.15)
+    plt.close(fig)
+
+
+def fig_masks(session: Path, out: Path) -> None:
+    """원본 사진(위) ↔ AI 분할(아래) 4쌍: 정상 / 장애물로 좁아짐 / 보차 혼용 / 보도 소멸."""
+    from PIL import Image
+
+    rs = {r["frame"]: r for r in map(json.loads, open(session / "frame_results.jsonl", encoding="utf-8"))}
+    picks = [("p_frame_000129.jpg", "정상 보도", "보도·점자블록·자전거도로 구분"),
+             ("p_frame_000275.jpg", "장애물로 좁아짐", "가로수 보호틀·기둥이 폭을 깎음"),
+             ("p_frame_001560.jpg", "보차 혼용", "보도 위 이륜차·적치물"),
+             ("p_frame_004398.jpg", "보도 소멸", "보도 없이 차와 같은 골목")]
+    fig, axes = plt.subplots(2, 4, figsize=(16, 6.6), layout="constrained")
+    for j, (f, t, sub) in enumerate(picks):
+        r = rs[f]
+        val = "" if not r["sidewalk_present"] else f" · 비율 {r['ratio']:.2f}"
+        axes[0, j].imshow(Image.open(session / "frames" / f).convert("RGB").resize((960, 720)))
+        axes[0, j].set_title(f"{t}{val}\n{sub}", loc="left", fontsize=13)
+        ov = Image.open(session / "overlay" / f).convert("RGB")
+        axes[1, j].imshow(ov.crop((0, 22, ov.width, ov.height)))   # 왼쪽 위 디버그 라벨 띠 제거
+        for ax in axes[:, j]:
+            ax.set_axis_off()
+    axes[0, 0].text(-0.04, 0.5, "원본", transform=axes[0, 0].transAxes, rotation=90, ha="right", va="center", fontsize=13, color=INK2)
+    axes[1, 0].text(-0.04, 0.5, "AI 분할", transform=axes[1, 0].transAxes, rotation=90, ha="right", va="center", fontsize=13, color=INK2)
+    fig.savefig(out / "fig_masks.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -326,6 +361,8 @@ def main(argv: list[str] | None = None) -> None:
         fig_map(args.session, args.links, args.out)
         fig_frames(args.session, args.out)
     dt = ROOT / "outputs/mly_downtown"
+    if (dt / "overlay").exists():
+        fig_masks(dt, args.out)
     if (dt / "links_scored.geojson").exists():
         print("push", fig_push(dt, ROOT / "data/links/downtown.geojson", args.out))
     print("→", sorted(p.name for p in args.out.glob("*.png")))
