@@ -7,10 +7,10 @@
 
 | 구분 | 항목 | 파일·링크 | 상태 |
 |---|---|---|---|
-| 필수 | 성과보고서 (양식 준수, PPT 5p: 탐구참여인력·문제정의·AI 접근방법·결과 해석·한계 및 개선방안) | `RoadPush_성과보고서.pptx` + `.pdf` | ✅ |
+| 필수 | 성과보고서 (양식 준수, PPT 5p: 탐구참여인력·문제정의·AI 접근방법·결과 해석·한계 및 개선방안) | `docs/report/RoadPush_성과보고서.pptx` + `.pdf` (Pretendard 미설치 PC 대비 PDF 병행) | ✅ |
 | 필수 | 참가신청서 (전원 개인정보, 대표자 서명) | 양식: `docs/templates/성과보고서_양식_Word.docx` 2쪽 또는 KEIT 공지 첨부 | ⏳ **사용자 작성·서명** |
 | 필수 | 테스트 URL | https://huggingface.co/spaces/YunSangNam/roadpush | ✅ 공개 (10/27) |
-| 필수 | 데모 영상 2~5분 | `RoadPush_demo.mp4` (3분 25초, 16 MB) | ✅ |
+| 필수 | 데모 영상 2~5분 | `RoadPush_demo.mp4` (3분 20초, 15 MB) | ✅ |
 | 선택 | GitHub | https://github.com/gkgk0119gmail-arch/roadpush | ✅ 공개 (10/27) |
 | 선택 | 데이터셋 요약·샘플 결과물 | `RoadPush_데이터셋요약.pdf` (2쪽, 편집용 `.docx` 동봉) | ✅ |
 
@@ -38,7 +38,7 @@
 > ■ 첨부
 >   1. 성과보고서 (PPT, PDF)
 >   2. 참가신청서 (서명)
->   3. 데모 시연 영상 (3분 25초) — 용량 관계로 링크: https://github.com/gkgk0119gmail-arch/roadpush/blob/main/docs/media/RoadPush_demo.mp4
+>   3. 데모 시연 영상 (3분 20초) — 용량 관계로 링크: https://github.com/gkgk0119gmail-arch/roadpush/blob/main/docs/media/RoadPush_demo.mp4
 >   4. 학습 데이터셋 요약 및 샘플 결과물 (PDF)
 >
 > 확인 부탁드립니다. 감사합니다.

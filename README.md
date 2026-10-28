@@ -6,10 +6,13 @@
 | | |
 |---|---|
 | **웹앱(테스트 URL)** | https://huggingface.co/spaces/YunSangNam/roadpush — 서버 없는 정적 웹앱, 사진 분석은 브라우저 안에서 실행 · 공개, 로그인 없이 모든 브라우저(Safari·모바일 포함) |
-| **데모 영상 (3분 25초)** | [docs/media/RoadPush_demo.mp4](docs/media/RoadPush_demo.mp4) |
+| **데모 영상 (3분 20초)** | [docs/media/RoadPush_demo.mp4](docs/media/RoadPush_demo.mp4) |
+| **성과보고서** | [PDF](docs/report/RoadPush_성과보고서.pdf) · [PPTX](docs/report/RoadPush_성과보고서.pptx) — KEIT 양식 5쪽 |
 | **대상** | 서울 도심(중구·종로) 공개 거리 사진 7,559장(360° 변환 포함)의 실제 촬영 위치 · **464개 링크 · 28.3 km** |
 | **사용자** | 지자체·도로관리기관 보도 담당자 — 어디부터 단속·정비할지 우선순위 |
 | **문서** | 결과 수치 [docs/results.md](docs/results.md) · 진행 기록 [PROGRESS.md](PROGRESS.md) · 제출 [docs/submission.md](docs/submission.md) |
+
+![한눈에 보는 RoadPush](docs/figures/infographic_summary.png)
 
 ![서울 도심 보행 링크 위험도 — 웹앱 지도](docs/media/web_map_wide.jpg)
 <sub>웹앱 지도 — 서울 도심(광화문~동대문, 명동~혜화) 공개 거리 사진이 지나간 길 464개 링크를 위험(빨강)·주의(노랑)·안전(초록)으로 색칠.</sub>
@@ -101,7 +104,8 @@
 | `mapillary.py` · `links.py` · `aggregate.py` · `merge_runs.py` | 공개 보행 사진 수집(360° → 진행 방향 시점 변환), OSM 링크·스냅, 링크 집계 |
 | `vlm.py` · `sam3_label.py` · `gdino_label.py` | 멀티모달 LLM 확인·메모·환각 측정, zero-shot teacher |
 | `web/` · `scripts/build_static.py` · `scripts/redeploy_static.sh` | 정적 웹앱(Leaflet + onnxruntime-web), 빌드·배포 |
-| `scripts/` | 다운로드·학습 대기열, 그림(`make_figures.py`), 성과보고서 PPT(`build_report.py`), 데모 영상(`record_demo.py`), 제출 묶음(`pack_submission.sh`) |
+| `scripts/` | 다운로드·학습 대기열, 그림(`make_figures.py`), 웹앱 녹화(`record_demo.py`), 제출 묶음(`pack_submission.sh`) |
+| `scripts/media/` | 인포그래픽 3장(`info.html`), 데모 영상 v2(`build_video.sh`: 장면 훅 + 인포그래픽 + 웹앱 녹화), KEIT 양식 성과보고서(`build_report_keit.py`) — 한 번에 `build_media.sh` |
 
 ```bash
 E="env -u PYTHONPATH"                       # 외부 PYTHONPATH(ROS 등) 차단
@@ -112,6 +116,7 @@ $E python -m roadpush.convert_aihub_to_coco --xml-dir data/raw/aihub/extracted/s
 $E python -m roadpush.train --dataset data/coco/surface_v1 --run seg_m_surface_v1          # tmux 안에서
 $E python -m roadpush.mapillary --area downtown --out outputs/mly_downtown_all             # .mapillary_token
 bash scripts/redeploy_static.sh             # ONNX 내보내기 → 정적 사이트 → HF Space
+bash scripts/media/build_media.sh           # 인포그래픽 → 데모 영상 → 성과보고서(docs/report/)
 bash scripts/pack_submission.sh             # 보고서·영상·데이터셋 요약 → dist/submission/
 $E pytest                                   # 40 tests
 ```

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>RoadPush 영상 카드</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:transparent;font-family:"Noto Sans CJK KR",sans-serif;-webkit-font-smoothing:antialiased}
+.c{width:1280px;height:720px;position:relative;overflow:hidden;color:#fff}
+/* 훅: 사진 위 오버레이(투명 배경) */
+.hook{background:linear-gradient(90deg,rgba(8,10,14,.86) 0%,rgba(8,10,14,.55) 42%,rgba(8,10,14,0) 70%)}
+.hook .k{position:absolute;left:64px;top:64px;font-size:22px;font-weight:700;color:#ff8a80;letter-spacing:.02em}
+.hook h1{position:absolute;left:64px;bottom:150px;font-size:76px;font-weight:900;line-height:1.12;letter-spacing:-.03em;text-shadow:0 2px 18px rgba(0,0,0,.4)}
+.hook p{position:absolute;left:66px;bottom:96px;font-size:24px;color:#d7d9de}
+.hook .tag{position:absolute;right:28px;bottom:22px;font-size:13px;color:rgba(255,255,255,.7)}
+.lg{position:absolute;left:66px;bottom:44px;display:flex;gap:18px;font-size:17px;color:#d7d9de}
+.lg span{display:flex;align-items:center;gap:7px}.lg i{width:18px;height:12px;border-radius:3px;display:inline-block}
+/* 다크 카드 */
+.dark{background:#0f1218}
+.title .q{position:absolute;left:96px;top:150px;font-size:66px;font-weight:900;letter-spacing:-.03em;line-height:1.2}
+.title .q em{font-style:normal;color:#ff5a4f}
+.title .rp{position:absolute;left:96px;top:380px;font-size:44px;font-weight:900;letter-spacing:-.01em}
+.title .rp span{color:#ff5a4f}
+.title .d{position:absolute;left:98px;top:446px;font-size:26px;color:#c7cad1}
+.title .s{position:absolute;left:98px;bottom:70px;font-size:18px;color:#7f838c}
+.res h2{position:absolute;left:84px;top:64px;font-size:46px;font-weight:900;letter-spacing:-.02em}
+.res .sub{position:absolute;left:86px;top:130px;font-size:22px;color:#a9adb6}
+.res .bars{position:absolute;left:84px;top:200px;width:620px}
+.res .row{margin-bottom:26px}
+.res .row .n{font-size:20px;color:#c7cad1;margin-bottom:8px;display:flex;justify-content:space-between}
+.res .row .n b{color:#fff;font-size:24px}
+.res .row .t{height:26px;background:#232833;border-radius:8px;overflow:hidden}
+.res .row .t i{display:block;height:100%;border-radius:8px;background:#5b606b}
+.res .row.me .t i{background:#ff5a4f}
+.res .row.me .n{color:#fff;font-weight:700}
+.res .cap{position:absolute;left:86px;top:520px;font-size:17px;color:#7f838c}
+.res .kpi{position:absolute;right:84px;top:196px;width:400px;display:flex;flex-direction:column;gap:18px}
+.res .kp{background:#191d26;border-radius:16px;padding:16px 22px}
+.res .kp .v{font-size:40px;font-weight:900;letter-spacing:-.02em}
+.res .kp .l{font-size:18px;color:#a9adb6;margin-top:2px}
+.res .foot{position:absolute;left:84px;right:84px;bottom:56px;font-size:21px;color:#c7cad1;border-top:1px solid #262b35;padding-top:20px}
+.end .t{position:absolute;left:96px;top:120px;font-size:58px;font-weight:900;letter-spacing:-.03em;line-height:1.2}
+.end .t span{color:#ff5a4f}
+.end .box{position:absolute;left:96px;top:330px;display:flex;flex-direction:column;gap:14px}
+.end .ln{display:flex;gap:18px;align-items:baseline;font-size:26px}
+.end .ln b{width:150px;font-size:20px;color:#ff8a80;font-weight:700}
+.end .cr{position:absolute;left:96px;bottom:56px;font-size:16px;color:#7f838c;line-height:1.7}
+</style></head><body>
+
+<section class="c hook" id="h1"><div class="k">ROADPUSH · 서울 도심에서 AI가 본 길</div>
+  <h1>보도가 끊기면</h1><p>보도가 사라진 골목 — 사람·수레·차가 한 길을 나눠 씁니다</p>
+  <div class="lg"><span><i style="background:#2fa84f"></i>보도</span><span><i style="background:#b98a4a"></i>골목</span><span><i style="background:#c92f4a"></i>장애물</span><span><i style="background:#a99be0"></i>보행자</span></div>
+  <div class="tag">© Mapillary contributors, CC BY-SA 4.0</div></section>
+<section class="c hook" id="h2"><div class="k">ROADPUSH · 서울 도심에서 AI가 본 길</div>
+  <h1>차가 보도를<br>차지하면</h1><p>보도블록 위로 차가 드나드는 길 — 사람이 비켜섭니다</p>
+  <div class="lg"><span><i style="background:#2fa84f"></i>보도</span><span><i style="background:#b98a4a"></i>골목</span><span><i style="background:#c92f4a"></i>장애물</span><span><i style="background:#a99be0"></i>보행자</span></div>
+  <div class="tag">© Mapillary contributors, CC BY-SA 4.0</div></section>
+<section class="c hook" id="h3"><div class="k">ROADPUSH · 서울 도심에서 AI가 본 길</div>
+  <h1>장애물이<br>길을 막으면</h1><p>입간판·적치물로 지나갈 폭이 원래의 30% 아래로</p>
+  <div class="lg"><span><i style="background:#2fa84f"></i>보도</span><span><i style="background:#b98a4a"></i>골목</span><span><i style="background:#c92f4a"></i>장애물</span><span><i style="background:#a99be0"></i>보행자</span></div>
+  <div class="tag">© Mapillary contributors, CC BY-SA 4.0</div></section>
+
+<section class="c dark title" id="t">
+  <div class="q">걷는 사람은<br><em>차도로 밀려납니다.</em></div>
+  <div class="rp">Road<span>Push</span></div>
+  <div class="d">거리 사진만으로, 사람이 밀려나는 길을 찾아 점수로 보여 주는 AI</div>
+  <div class="s">2026 AI 라이프 솔루션 챌린지 · 아이디어 챌린지 후보작 「RoadPush」 구현</div>
+</section>
+
+<section class="c dark res" id="r">
+  <h2>작고 가볍지만, 더 정확하게</h2>
+  <div class="sub">지나갈 폭 비율 오차 — 낮을수록 정확 (같은 검증 사진 150장)</div>
+  <div class="bars">
+    <div class="row"><div class="n"><span>Grounding DINO + SAM 2 (범용 AI)</span><b>0.200</b></div><div class="t"><i style="width:100%"></i></div></div>
+    <div class="row"><div class="n"><span>SAM 3 (범용 AI, 8억 파라미터)</span><b>0.109</b></div><div class="t"><i style="width:54.5%"></i></div></div>
+    <div class="row me"><div class="n"><span>RoadPush (3,600만 파라미터)</span><b>0.038</b></div><div class="t"><i style="width:19%"></i></div></div>
+  </div>
+  <div class="cap">AI Hub 인도보행 영상 검증셋 · 촬영 폴더 단위로 학습과 분리</div>
+  <div class="kpi">
+    <div class="kp"><div class="v">0.017</div><div class="l">비율 오차 · 검증 954장 전체</div></div>
+    <div class="kp"><div class="v">0.915</div><div class="l">보도 소멸 판정 F1</div></div>
+    <div class="kp"><div class="v">0.755</div><div class="l">장애물 인식 mIoU · 1,566장</div></div>
+  </div>
+  <div class="foot">범용 AI(SAM 3)는 라벨링 선생님으로만 쓰고, 서비스는 가벼운 모델로 — 서버 없이 브라우저에서 돕니다</div>
+</section>
+
+<section class="c dark end" id="e">
+  <div class="t">Road<span>Push</span><br>걸을 수 있는 도시를 위한 데이터</div>
+  <div class="box">
+    <div class="ln"><b>직접 써 보기</b>huggingface.co/spaces/YunSangNam/roadpush</div>
+    <div class="ln"><b>코드·데이터</b>github.com/gkgk0119gmail-arch/roadpush</div>
+  </div>
+  <div class="cr">학습 데이터 AI Hub 인도보행 영상(한국지능정보사회진흥원) · 거리 사진 © Mapillary contributors (CC BY-SA 4.0)<br>지도 © OpenStreetMap contributors (ODbL) · 모델 RF-DETR-Seg (Apache 2.0) · 점검 메모 Qwen3-VL-8B</div>
+</section>
+</body></html>
